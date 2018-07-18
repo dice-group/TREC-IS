@@ -26,4 +26,4 @@ for typ in informationTypes:
 tweets=tweetsPrp.loadTweets()
 
 for tweet in tweets.TREC_data:
-print (tweet)
+    print (tweet)
