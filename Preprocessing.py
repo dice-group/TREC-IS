@@ -47,7 +47,7 @@ class Preprocessing:
 
         t = Twarc(self.consumer_key, self.consumer_secret, self.access_token, self.access_token_secret)
 
-        tweets_fullData = t.hydrate(iter(tweetsIDs))  # access all tweets
+        tweets_fullData = t.hydrate(iter(tweetsIDs))  # retrieve all tweets by IDs
 
         return Tweets(event['tweets'],tweets_fullData)
 
