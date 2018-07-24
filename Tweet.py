@@ -7,15 +7,6 @@ class Tweet:
         self.indicatorTerms = indicatorTerms
         self.categories = categories
 
-    def add_trec_data(self, priority=None, indicatorTerms=None, categories=None):
-        '''
-        This function is used to combine trec-is data (tweet_priority,tweet_indicatorTerms,
-        tweet_categories) with tweets info (full_text and metadata)
-        '''
-
-        self.priority = priority
-        self.indicatorTerms = indicatorTerms
-        self.categories = categories
 
     def add_tweets_data(self, text=None, metadata=None):
         '''
