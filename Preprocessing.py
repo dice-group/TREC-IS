@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 from glob import glob
 
 import pandas as pd
@@ -67,7 +68,7 @@ class Preprocessing:
 
         return all_tweets
 
-    def load_traing_data(self):
+    def get_traing_data(self):
         '''
         :return: combined data (tweets info and trec-is data) as dictionary {tweet_id: Tweet}
         '''
@@ -112,3 +113,29 @@ class Preprocessing:
             training_data[str(twtt['id'])].add_tweets_data(twtt['full_text'], twtt['entities'])
 
         return training_data
+
+    def save_trainingData(self):
+        '''
+        Saving preprocessed tweets training data into file
+        :return:
+        '''
+
+        file = open('data/preprocessed_data.pkl', 'wb')
+        trainingData = self.get_traing_data()
+
+        pickle.dump(trainingData, file)
+
+        file.close()
+
+    def load_training_data(self):
+        '''
+        Loading preprocessed tweets.
+        :return:
+        '''
+        file = open('data/preprocessed_data.pkl', 'rb')
+
+        trainingData = pickle.load(file)
+
+        file.close()
+
+        return trainingData
