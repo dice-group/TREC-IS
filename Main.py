@@ -8,8 +8,8 @@ tweetsPrp.consumer_secret=consumer_secret
 tweetsPrp.access_token=access_token
 tweetsPrp.access_token_secret=access_token_secret
 
-training_Data = tweetsPrp.load_traing_data()
-
+training_Data = tweetsPrp.load_training_data()
 # test loading training data: print tweet's categories, tweet's indicator_terms and text.
 for _, tweet in training_Data.items():
     print(tweet.categories, tweet.indicatorTerms, tweet.text)
+
