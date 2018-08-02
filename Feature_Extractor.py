@@ -1,7 +1,6 @@
 from Preprocessing import Preprocessing
-from contractions import CONTRACTION_MAP
 from sklearn import preprocessing
-import string, spacy, nltk, re
+import spacy
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
