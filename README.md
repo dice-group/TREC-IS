@@ -1,6 +1,6 @@
 # TREC-IS
 
-##### Install the following dependecies before using the ```Feature_Extractor``` class: <br>
+##### Install the following dependencies before using the ```Feature_Extractor``` class: <br>
 - [spacy](https://spacy.io/usage/models#section-install) :
 ```
 pip install -U spacy 
