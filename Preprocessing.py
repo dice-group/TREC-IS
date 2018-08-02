@@ -139,3 +139,16 @@ class Preprocessing:
         file.close()
 
         return trainingData
+
+    def load_input_feature_extraction(self):
+        data = self.load_training_data()
+        tweet_list = []
+        for _, tweet in data.items():
+            #if tweet.metadata is not None and tweet.metadata.get('entities.hashtags') is not None:
+            tweet_list.append(
+                    {'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text, 'metadata': tweet.metadata })
+            # else:
+            #     tweet_list.append(
+            #         {'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text})
+        tweet_df = pd.DataFrame(tweet_list, columns=['categories', 'indicatorTerms', 'text', 'metadata'])
+        return tweet_df
