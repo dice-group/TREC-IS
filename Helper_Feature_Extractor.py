@@ -125,3 +125,13 @@ class Helper_FeatureExtraction:
             norm_tweets.append(norm_text)
 
         return norm_tweets
+
+    def include_indicatorTerms_in_tweets(self, input_dataframe):
+        norm_tweets = []
+        for _, col in input_dataframe.iterrows():
+            norm_text = self.normalize_tweet(str(col['text']).lower(), nlp) #lowercased input
+            if col['indicatorTerms']:
+                norm_text += ' '.join(col['indicatorTerms'])
+            norm_tweets.append(norm_text)
+
+        return norm_tweets

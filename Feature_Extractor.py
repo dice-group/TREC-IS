@@ -18,7 +18,8 @@ class FeatureExtraction:
         self.df.dropna(subset=['text'], how='all', inplace=True) # drop missing values
         le = preprocessing.LabelEncoder() # replace categorical data in 'categories' with numerical value
         self.df['categories'] = le.fit_transform(self.df['categories'])
-        normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
+        #normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
+        normalized_tweets = self.hepler_fe.include_indicatorTerms_in_tweets(self.df)
         new_col = np.asanyarray(normalized_tweets)
         self.df['norm_tweets'] = new_col
         return self.df
