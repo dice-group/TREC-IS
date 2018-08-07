@@ -1,10 +1,10 @@
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+
 from Evaluation import Evaluation
+from Feature_Extractor import FeatureExtraction
 from Preprocessing import Preprocessing
 from secrets import consumer_key, consumer_secret, access_token, access_token_secret
-from sklearn.naive_bayes import MultinomialNB
-from Feature_Extractor import FeatureExtraction
-from sklearn.model_selection import train_test_split
-import numpy as np
 
 tweetsPrp = Preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
 
@@ -63,3 +63,13 @@ eval = Evaluation(val_cat, prediction)
 
 print('Classification overall performance: F1 score', eval.f1_score)
 print('Classification accuracy: ', eval.accuracy_score)
+
+# ------------------ Testing Sentiment Features---------#
+'''
+Hint: sentiment analysis is performed in tweet's full text without normalization to keep stop words which preserve tweet's meaning. 
+'''
+fe.sentiment_features_from_tweets()
+
+tweets_sentiments = fe.df[['text', 'sentiment']]
+print(tweets_sentiments)
+# ------------------------------------------------------
