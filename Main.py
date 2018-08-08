@@ -117,6 +117,6 @@ Hint:
 fe.sentiment_features_from_tweets()
 fe.word2vec_feature_from_tweets()
 
-tweets_sentiments_embedding = fe.norm_df[['text', 'sentiment', 'tweetsEmbedding']]
+tweets_sentiments_embedding = fe.norm_df[['sentiment', 'tweetsEmbedding']]
 print(tweets_sentiments_embedding)
 # ------------------------------------------------------
