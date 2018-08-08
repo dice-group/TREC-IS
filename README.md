@@ -18,3 +18,7 @@ Enter python shell and then download all the nltk packages.
 ```
 pip install -U scikit-learn
 ```
+- [Textblob](https://textblob.readthedocs.io/en/dev/)
+```
+pip install -U textblob
+python -m textblob.download_corpora

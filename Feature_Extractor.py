@@ -1,10 +1,16 @@
-from Preprocessing import Preprocessing
-from sklearn import preprocessing
-import spacy
 import numpy as np
+
 from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
+import spacy
+from sklearn import preprocessing
+
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from textblob import TextBlob
+
 from Helper_Feature_Extractor import Helper_FeatureExtraction
+from Preprocessing import Preprocessing
+
 
 class FeatureExtraction:
 
@@ -43,3 +49,11 @@ class FeatureExtraction:
         #feature_matrix = tfidf_transformer.fit_transform(x_train_counts)
 
         return feature_matrix
+
+    def sentiment_features_from_tweets(self):
+        self.df = self.create_dataframe_for_normalized_tweets()
+
+        self.df['sentiment'] = self.df['text'].apply(
+            lambda tweet: TextBlob(tweet).polarity)  # find sentiment scores by Textblob
+
+        return self.df['sentiment']

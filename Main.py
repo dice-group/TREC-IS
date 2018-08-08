@@ -1,4 +1,8 @@
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+
 from Evaluation import Evaluation
+from Feature_Extractor import FeatureExtraction
 from Preprocessing import Preprocessing
 from secrets import consumer_key, consumer_secret, access_token, access_token_secret
 from sklearn.naive_bayes import MultinomialNB
@@ -13,6 +17,7 @@ import seaborn as sns
 from Helper_Feature_Extractor import Helper_FeatureExtraction
 import spacy
 import matplotlib.pyplot as plt
+
 tweetsPrp = Preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
 
 tweetsPrp.consumer_key=consumer_key
@@ -88,7 +93,7 @@ for model in models:
 
 cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
 
-#--------visualization of models and accuracies---------
+#-----------visualization of models and accuracies---------
 # sns.boxplot(x='model_name', y = 'accuracy', data=cv_df)
 # plt.show()
 
@@ -104,5 +109,17 @@ print ('average accuracy: ', mean_acc)
 #prediction = clf.predict(val_bow)
 #eval = Evaluation(val_cat, prediction)
 
+
 #print('Classification overall performance: F1 score', eval.f1_score)
 #print('Classification accuracy: ', eval.accuracy_score)
+
+# ------------------ Testing Sentiment Features---------#
+'''
+Hint: sentiment analysis is performed in tweet's full text without normalization to keep stop words which preserve tweet's meaning. 
+'''
+fe.sentiment_features_from_tweets()
+
+tweets_sentiments = fe.df[['text', 'sentiment']]
+print(tweets_sentiments)
+# ------------------------------------------------------
+
