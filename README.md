@@ -24,10 +24,10 @@ pip install -U textblob
 python -m textblob.download_corpora
 
 ```
-- [Word Embedding](https://textblob.readthedocs.io/en/dev/)
+- [Word Embedding](https://www.fredericgodin.com/software/)
 
 We used a pre-trained word embedding model trained on a tweets dataset. It couldn't be pushed in the 
 repository. 
-- Download it from this link https://textblob.readthedocs.io/en/dev/ 
+- Download it from this link https: https://www.fredericgodin.com/software/ 
 - Save into 'data' folder. 
 ```
