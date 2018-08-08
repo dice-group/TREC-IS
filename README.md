@@ -18,7 +18,16 @@ Enter python shell and then download all the nltk packages.
 ```
 pip install -U scikit-learn
 ```
-- [Textblob](https://textblob.readthedocs.io/en/dev/)
+- [textblob](https://textblob.readthedocs.io/en/dev/)
 ```
 pip install -U textblob
 python -m textblob.download_corpora
+
+```
+- [Word Embedding](https://www.fredericgodin.com/software/)
+
+We used a pre-trained word embedding model trained on a tweets dataset. It couldn't be pushed in the 
+repository. 
+- Download it from this link https: https://www.fredericgodin.com/software/ 
+- Save into 'data' folder. 
+```

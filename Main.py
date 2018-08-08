@@ -1,22 +1,17 @@
-from sklearn.model_selection import train_test_split
+import pandas as pd
+import spacy
+from sklearn import tree
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
 
 from Evaluation import Evaluation
 from Feature_Extractor import FeatureExtraction
+from Helper_Feature_Extractor import Helper_FeatureExtraction
 from Preprocessing import Preprocessing
 from secrets import consumer_key, consumer_secret, access_token, access_token_secret
-from sklearn.naive_bayes import MultinomialNB
-from Feature_Extractor import FeatureExtraction
-from sklearn.model_selection import train_test_split, cross_val_score,  KFold
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import LinearSVC
-from sklearn import tree
-import pandas as pd
-import seaborn as sns
-from Helper_Feature_Extractor import Helper_FeatureExtraction
-import spacy
-import matplotlib.pyplot as plt
 
 tweetsPrp = Preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
 
@@ -71,7 +66,7 @@ print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 fe = FeatureExtraction()
 
 bow = fe.bow_feature
-#bow = fe.tfidf_feature
+# bow = fe.tfidf_feature
 
 df = fe.get_dataframe_for_normalized_tweets()
 
@@ -86,12 +81,11 @@ models = [
 
 ]
 
-
 kf = 2
 entries = []
 for model in models:
     model_name = model.__class__.__name__
-    scores = cross_val_score(model, bow, df['categories'], scoring= 'accuracy', cv = kf )
+    scores = cross_val_score(model, bow, df['categories'], scoring='accuracy', cv=kf)
     for fold_idx, accuracy in enumerate(scores):
         entries.append((model_name, fold_idx, accuracy))
 
@@ -117,13 +111,16 @@ print ('average accuracy: ', mean_acc)
 #print('Classification overall performance: F1 score', eval.f1_score)
 #print('Classification accuracy: ', eval.accuracy_score)
 
-# ------------------ Testing Sentiment Features---------#
+# ------------------ Testing Sentiment and Embedding Features---------#
 '''
-Hint: sentiment analysis is performed in tweet's full text without normalization to keep stop words which preserve tweet's meaning. 
+Hint: 
+- sentiment analysis is performed in tweet's full text without normalization to keep stop words which preserve tweet's meaning. 
+- tweets Embedding feature is a weighted average of word2vec vectors in a tweet. word2vec is computed by a pre-trained word 
+  embedding model on a dataset of tweets 
 '''
 fe.sentiment_features_from_tweets()
+fe.word2vec_feature_from_tweets()
 
-tweets_sentiments = fe.norm_df[['text', 'sentiment']]
-print(tweets_sentiments)
+tweets_sentiments_embedding = fe.norm_df[['sentiment', 'tweetsEmbedding']]
+print(tweets_sentiments_embedding)
 # ------------------------------------------------------
-
