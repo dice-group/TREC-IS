@@ -1,5 +1,6 @@
 from contractions import CONTRACTION_MAP
 import string, spacy, nltk, re
+import emoji
 
 nlp = spacy.load('en')
 # text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
@@ -87,11 +88,40 @@ class Helper_FeatureExtraction:
         text = re.sub(r"http\S+", "", text)
         return text
 
+    def remove_special_symbols(self, text):
+        '''
+        removes arabic, tamil, latin symbols and dingbats
+        :param text:
+        :return:
+        '''
+        special_symbols = re.compile(r"[\u0600-\u06FF\u0B80-\u0BFF\u25A0-\u25FF\u2700-\u27BF]+", re.UNICODE)
+        text = special_symbols.sub('', text)
+        return text
+
+    def emoji_to_text(self, text):
+        text = emoji.demojize(text)
+        text = text.replace("::", " ") #for emojis that don't have space between them
+        return text
+
+    def remove_emojis(self, text):
+        emoji_list = [char for char in text if char in emoji.UNICODE_EMOJI]
+        clean_text = ' '.join([tok for tok in text.split() if not any(char in tok for char in emoji_list)])
+        return clean_text
+
     def remove_numbers(self, text):
         text = re.sub(r'\d+', '', text)
         return text
 
-    def normalize_tweet(self, text, nlp, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True ):
+    def normalize_tweet(self, text, nlp, demojize_text= True, special_symbol_removal= True, emoji_removal= False, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True ):
+
+        if emoji_removal:
+            text = self.remove_emojis(text)
+        elif demojize_text:
+            text = self.emoji_to_text(text)
+
+        if special_symbol_removal:
+            text = self.remove_special_symbols(text)
+
         if contraction_expansion:
             text = self.expand_contractions(text)
 

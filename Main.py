@@ -57,7 +57,13 @@ eval = Evaluation(y_true, y_pred)
 ##check normalized tweet
 helper = Helper_FeatureExtraction()
 nlp = spacy.load('en')
-text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
+#text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
+text = """rt @itsshowtime: #pabloph
+▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+✞✞✞ ✞ ｐｒａｙ ｆｏｒ ｔｈｅ ｐｈｉｌｉｐｐｉｎｅｓ ✞✞✞✞ 
+▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬"""
+print('emoji to text: ', helper.emoji_to_text(text))
+print('no emojis: ', helper.remove_emojis(text))
 print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 
 #---------- Feature Extraction ---------
@@ -81,14 +87,12 @@ models = [
 ]
 
 
-kf = 10
-
+kf = 2
 entries = []
 for model in models:
     model_name = model.__class__.__name__
     scores = cross_val_score(model, bow, df['categories'], scoring= 'accuracy', cv = kf )
     for fold_idx, accuracy in enumerate(scores):
-        #print (model_name, fold_idx, accuracy)
         entries.append((model_name, fold_idx, accuracy))
 
 cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
