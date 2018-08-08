@@ -18,6 +18,11 @@ Enter python shell and then download all the nltk packages.
 ```
 pip install -U scikit-learn
 ```
+- [emoji](https://pypi.org/project/emoji/)
+```
+pip install emoji --upgrade
+```
+
 - [textblob](https://textblob.readthedocs.io/en/dev/)
 ```
 pip install -U textblob
