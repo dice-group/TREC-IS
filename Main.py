@@ -64,30 +64,30 @@ print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 
 fe = FeatureExtraction()
 
-bow = fe.bow_features_from_tweets()
-#bow = fe.tfidf_from_tweets()
+bow = fe.bow_feature
+#bow = fe.tfidf_feature
 
-df = fe.get_datafrane_for_normalized_tweets()
+df = fe.get_dataframe_for_normalized_tweets()
 
 print(df.head(5))
 
 models = [
-    RandomForestClassifier(n_estimators=20, max_depth=3, random_state=0),
-    LinearSVC(random_state=0),
+    RandomForestClassifier(n_estimators=20, max_depth=3, random_state=42),
+    LinearSVC(random_state=42),
     MultinomialNB(),
-    LogisticRegression(random_state=0, solver='newton-cg'),
-    tree.DecisionTreeClassifier(random_state=0)
+    LogisticRegression(random_state=42, solver='newton-cg'),
+    tree.DecisionTreeClassifier(random_state=42)
 
 ]
 
 
-kf = KFold(n_splits=10)
+kf = 10
 
 entries = []
 for model in models:
     model_name = model.__class__.__name__
-    accuracies = cross_val_score(model, bow, df['categories'], scoring= 'accuracy', cv = kf )
-    for fold_idx, accuracy in enumerate(accuracies):
+    scores = cross_val_score(model, bow, df['categories'], scoring= 'accuracy', cv = kf )
+    for fold_idx, accuracy in enumerate(scores):
         #print (model_name, fold_idx, accuracy)
         entries.append((model_name, fold_idx, accuracy))
 
@@ -102,7 +102,7 @@ print ('average accuracy: ', mean_acc)
 
 #clf = MultinomialNB().fit(train_bow, train_cat)
 #clf = MultinomialNB()
-#scoring = ['precision_macro', 'recall_macro']
+
 #scores = cross_validate(clf, train_bow, train_cat, scoring=scoring, cv=10, return_train_score=True)
 #sorted(scores.keys())
 #print(scores)
@@ -119,7 +119,7 @@ Hint: sentiment analysis is performed in tweet's full text without normalization
 '''
 fe.sentiment_features_from_tweets()
 
-tweets_sentiments = fe.df[['text', 'sentiment']]
+tweets_sentiments = fe.norm_df[['text', 'sentiment']]
 print(tweets_sentiments)
 # ------------------------------------------------------
 
