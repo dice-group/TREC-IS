@@ -22,3 +22,12 @@ pip install -U scikit-learn
 ```
 pip install -U textblob
 python -m textblob.download_corpora
+
+```
+- [Word Embedding](https://textblob.readthedocs.io/en/dev/)
+
+We used a pre-trained word embedding model trained on a tweets dataset. It couldn't be pushed in the 
+repository. 
+- Download it from this link https://textblob.readthedocs.io/en/dev/ 
+- Save into 'data' folder. 
+```
