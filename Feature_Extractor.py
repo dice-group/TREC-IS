@@ -2,7 +2,7 @@ from Preprocessing import Preprocessing
 from sklearn import preprocessing
 import spacy
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from Helper_Feature_Extractor import Helper_FeatureExtraction
 
@@ -13,6 +13,9 @@ class FeatureExtraction:
         self.df = self.tweetsPrp.load_input_feature_extraction()
         self.nlp = spacy.load('en')
         self.hepler_fe = Helper_FeatureExtraction()
+
+    def get_datafrane_for_normalized_tweets(self):
+        return self.df
 
     def create_dataframe_for_normalized_tweets(self):
         self.df.dropna(subset=['text'], how='all', inplace=True) # drop missing values
@@ -33,5 +36,10 @@ class FeatureExtraction:
     def bow_features_from_tweets(self):
         self.df = self.create_dataframe_for_normalized_tweets()
         bow = CountVectorizer(analyzer='word', ngram_range=(1, 1))
+        #count_vec = CountVectorizer(analyzer='word', ngram_range=(1, 1))
+        #x_train_counts = count_vec.fit_transform(self.df['norm_tweets'])
         feature_matrix = bow.fit_transform(self.df['norm_tweets'])
+        #tfidf_transformer = TfidfTransformer()
+        #feature_matrix = tfidf_transformer.fit_transform(x_train_counts)
+
         return feature_matrix
