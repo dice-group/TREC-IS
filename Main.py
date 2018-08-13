@@ -52,14 +52,16 @@ eval = Evaluation(y_true, y_pred)
 ##check normalized tweet
 helper = Helper_FeatureExtraction()
 nlp = spacy.load('en')
-#text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
-text = """rt @itsshowtime: #pabloph
-▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-✞✞✞ ✞ ｐｒａｙ ｆｏｒ ｔｈｅ ｐｈｉｌｉｐｐｉｎｅｓ ✞✞✞✞ 
-▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬"""
+text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
+# #text = """rt @itsshowtime: #pabloph
+# ▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+# ✞✞✞ ✞ ｐｒａｙ ｆｏｒ ｔｈｅ ｐｈｉｌｉｐｐｉｎｅｓ ✞✞✞✞
+# ▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬"""
 print('emoji to text: ', helper.emoji_to_text(text))
 print('no emojis: ', helper.remove_emojis(text))
 print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
+text = helper.emoji_to_text(text)
+print('concepts: ', helper.extract_concepts_from_babelnet(text))
 
 #---------- Feature Extraction ---------
 
@@ -98,18 +100,14 @@ cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
 mean_acc = cv_df.groupby('model_name').accuracy.mean()
 print ('average accuracy: ', mean_acc)
 
-#clf = MultinomialNB().fit(train_bow, train_cat)
-#clf = MultinomialNB()
-
-#scores = cross_validate(clf, train_bow, train_cat, scoring=scoring, cv=10, return_train_score=True)
-#sorted(scores.keys())
-#print(scores)
-#prediction = clf.predict(val_bow)
-#eval = Evaluation(val_cat, prediction)
-
-
-#print('Classification overall performance: F1 score', eval.f1_score)
-#print('Classification accuracy: ', eval.accuracy_score)
+#------------------- Bag of Concepts ---------------------------------#
+'''
+Concepts are extracted from BabelNet (and Babelfy) after replacing emojis with text, expanding contractions and removing '#' and 'RT'
+from each tweet.   
+'''
+boc_embedding = fe.create_bag_of_concepts()
+print(boc_embedding)
+print(fe.norm_df.head(5))
 
 # ------------------ Testing Sentiment and Embedding Features---------#
 '''
@@ -124,3 +122,6 @@ fe.word2vec_feature_from_tweets()
 tweets_sentiments_embedding = fe.norm_df[['sentiment', 'tweetsEmbedding']]
 print(tweets_sentiments_embedding)
 # ------------------------------------------------------
+
+print(fe.norm_df.head(5))
+

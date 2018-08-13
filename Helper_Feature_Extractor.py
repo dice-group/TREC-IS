@@ -1,14 +1,100 @@
 from contractions import CONTRACTION_MAP
 import string, spacy, nltk, re
 import emoji
+from secrets import babelnet_key
+from difflib import get_close_matches
+import requests
+
+babelfy_url = 'https://babelfy.io/v1/disambiguate'
+babelnet_url = 'https://babelnet.io/v5/getSynset'
+key = babelnet_key
+lang = 'EN'
 
 nlp = spacy.load('en')
-# text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
-# text = nlp(text)
-# tokens = [(token.text.lower()) for token in text if not token.is_stop and not token.is_punct]
-# print(tokens)
 
 class Helper_FeatureExtraction:
+
+    def extract_synsets_from_babelfy(self, text):
+        '''
+        for extracting synsetIDs from text recognition and disambiguation
+        :param text: string
+        :return: ({concept_mentions : synsetIDs}, {concept_mentions : (score, coherence_score, global_score)})
+        '''
+        params = {
+            'text': text,
+            'lang': lang,
+            'key': key
+        }
+        response = requests.get(babelfy_url, params=params, headers={'Accept-encoding': 'gzip'})
+        data = response.json()
+
+        synsetIDs = []
+        mentions = []
+        scores = []
+        for result in data:
+            # retrieving char fragment
+            charFragment = result.get('charFragment')
+            cfStart = charFragment.get('start')
+            cfEnd = charFragment.get('end')
+            mentions.append(text[cfStart:cfEnd + 1])
+
+            # retrieving BabelSynset ID
+            synsetId = result.get('babelSynsetID')
+            synsetIDs.append(synsetId)
+
+            # retrieving the scores
+            coherence_score = result.get('coherenceScore')
+            global_score = result.get('globalScore')
+            score = result.get('score')
+            scores.append((score, coherence_score, global_score))
+
+        synsetDict = dict(zip(mentions, synsetIDs))
+        scoreDict = dict(zip(mentions, scores))
+        return (synsetDict, scoreDict)
+
+    def extract_concepts_from_babelnet(self, text):
+        '''
+        Uses the synsets returned by Babelfy to extract categories for each disambiguated term.
+        Only the categories (for each term) that are most similar to the 'mainSense' are considered.
+        :param text: string
+        :return: a list of concepts from the text
+        '''
+        synsetObj = self.extract_synsets_from_babelfy(text)
+        synsetDict = synsetObj[0]
+        concepts = []
+        for k in synsetDict.keys():
+            params = {
+                'id': synsetDict[k],
+                'key': key
+            }
+            r = requests.get(babelnet_url, params=params, headers={'Accept-encoding': 'gzip'})
+            data = r.json()
+            main_sense = data['mainSense']
+            categories = data['categories']
+
+            category_terms = []
+            for category in categories:
+                category_terms.append(category.get('category'))
+
+            maxscore = 0
+            main_sense = main_sense.replace('#', '').replace('n1', '') #mainSense specific preprocessing
+
+            # if difflib returns an empty list, use cosine similarity from spacy
+            finalCategory = get_close_matches(main_sense, category_terms)
+            for cat in finalCategory:
+                concepts.append(cat)
+
+            if not finalCategory:
+                for term in category_terms:
+                    w1 = nlp(term)
+                    w2 = nlp(main_sense)
+                    score = w1.similarity(w2)
+                    maxscore = max(score, maxscore)
+                    if maxscore == score:
+                        concepts.append(term)
+
+        return concepts
+
     def hashtag_pipe(self, text):
         '''
         Processes hashtags as one word.
