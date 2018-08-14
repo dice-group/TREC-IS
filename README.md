@@ -37,5 +37,5 @@ repository.
 - Download it from this link https: https://www.fredericgodin.com/software/ 
 - Save into 'data' folder. 
 
-##### For using Bag-of-Concepts, first create an account on [BabelNet](https://babelnet.org/register) and after logging in, fill the form as mentioned [here](http://babelfy.org/guide) to increase the daily limit. 
+##### For using Bag-of-Concepts, first create an account on [BabelNet](https://babelnet.org/register) and after logging in, fill the form as mentioned [here](http://babelfy.org/guide#HowcanIincreasetheBabelcoinsdailylimit?) to increase the daily limit. 
 Add the unique API key as 'babelnet_key' in secrets.py and then you're ready to go.!    
