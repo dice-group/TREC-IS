@@ -11,7 +11,6 @@ from Tweet import Tweet
 
 
 class Preprocessing:
-
     def __init__(self, consumer_key=None, consumer_secret=None,
                  access_token=None, access_token_secret=None, trec_path=None, tweets_dir=None):
         '''
@@ -19,7 +18,6 @@ class Preprocessing:
         :param trec_path: path of training data (json file)
         :param tweets_dir:path of tweets directory
         '''
-
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.access_token = access_token
@@ -51,7 +49,6 @@ class Preprocessing:
         load and combine tweets (downloaded by TREC-Downloader) from json files into a dictionary.
         :return: a dictionary of all tweets {id: Tweet} , Tweet object has info as (id, full_text and metadata)
         '''
-
         all_tweets = {}
 
         # loading all json files
@@ -72,7 +69,6 @@ class Preprocessing:
         '''
         :return: combined data (tweets info and trec-is data) as dictionary {tweet_id: Tweet}
         '''
-
         # load tweets retrieved by TREC-Tweets downloader
         retrieved_tweets = self.load_Tweets()
 
@@ -85,16 +81,13 @@ class Preprocessing:
 
         for _, event in events.iterrows():
             for trec_tweet in event['tweets']:
-
                 if trec_tweet['postID'] in retrieved_tweets:  # check if tweets_full is retrieved ?
                     retriev_tweet = retrieved_tweets[trec_tweet['postID']]
-
                     training_data[trec_tweet['postID']] = Tweet(id=retriev_tweet.id, text=retriev_tweet.text,
                                                                 metadata=retriev_tweet.metadata,
                                                                 priority=trec_tweet['priority'],
                                                                 indicatorTerms=trec_tweet['indicatorTerms'],
                                                                 categories=trec_tweet['categories'])
-
                 else:
                     # adding missed tweets
                     training_data[trec_tweet['postID']] = Tweet(id=trec_tweet['postID'],
@@ -113,10 +106,10 @@ class Preprocessing:
         return training_data
 
     def save_trainingData(self):
-
         trainingData = self.get_traing_data()
         # save TREC-data as an object
-        file = open('data/TREC-data.pkl', 'wb')
+        trec_data_path = 'data/TREC-data.pkl'
+        file = open(trec_data_path, 'wb')
         pickle.dump(trainingData, file)
         file.close()
 
@@ -176,7 +169,6 @@ def main():
     #
     # for _, item in information_types.iteritems():
     #     print(item['id'], ' => ', item['desc'])
-
 
 if __name__ == '__main__':
     main()

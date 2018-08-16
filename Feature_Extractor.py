@@ -1,7 +1,10 @@
+import os.path
+import pickle
+
 import numpy as np
 import spacy
-from gensim.models.keyedvectors import KeyedVectors
-from nltk.tokenize import TweetTokenizer
+from gensim.models import KeyedVectors
+from nltk import TweetTokenizer
 from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -12,34 +15,34 @@ from Preprocessing import Preprocessing
 
 
 class FeatureExtraction:
-
     def __init__(self):
         self.tweetsPrp = Preprocessing()
-        self.nlp = spacy.load('en')
         self.df = self.tweetsPrp.load_input_feature_extraction()
+        self.nlp = spacy.load('en')
         self.hepler_fe = Helper_FeatureExtraction()
-        self.norm_df = self.create_dataframe_for_normalized_tweets()
-        self.tfidf_feature, self.tfidf = self.tfidf_from_tweets()
-        self.bow_feature = self.bow_features_from_tweets()
 
-    def get_dataframe_for_normalized_tweets(self):
-        return self.norm_df
+        self.norm_df = self.create_dataframe_for_normalized_tweets()
 
     def create_dataframe_for_normalized_tweets(self):
-        df = self.tweetsPrp.load_input_feature_extraction()
-        df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
+        self.df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
         le = preprocessing.LabelEncoder()  # replace categorical data in 'categories' with numerical value
-        df['categories'] = le.fit_transform(df['categories'])
-        # normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
-        normalized_tweets = self.hepler_fe.include_indicatorTerms_in_tweets(df)
+        self.df['categories'] = le.fit_transform(self.df['categories'])
+        normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
         new_col = np.asanyarray(normalized_tweets)
-        df['norm_tweets'] = new_col
-        return df
+        self.df['norm_tweets'] = new_col
+        return self.df
 
     def tfidf_from_tweets(self):
+        self.df = self.create_dataframe_for_normalized_tweets()
         tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1, 1), use_idf=True)
-        feature_matrix = tfidf.fit_transform(self.norm_df['norm_tweets'])
+        feature_matrix = tfidf.fit_transform(self.df['norm_tweets'])
         return feature_matrix, tfidf
+
+    def bow_features_from_tweets(self):
+        self.df = self.create_dataframe_for_normalized_tweets()
+        bow = CountVectorizer(analyzer='word', ngram_range=(1, 1))
+        feature_matrix = bow.fit_transform(self.df['norm_tweets'])
+        return feature_matrix
 
     def bow_features_from_tweets(self):
         count_vec = CountVectorizer(analyzer='word', ngram_range=(1, 1))
@@ -53,37 +56,87 @@ class FeatureExtraction:
 
     def sentiment_features_from_tweets(self):
         self.norm_df['sentiment'] = self.norm_df['text'].apply(
-            lambda tweet: TextBlob(tweet).polarity)  # find sentiment scores by Textblob
+            lambda tweet: TextBlob(tweet).polarity)
+        return self.norm_df
 
-    def word2vec_feature_from_tweets(self):
-        # loading pre-trained word embedding model on stanford datasets (sentiment140 tweets)
-        word2vec = KeyedVectors.load_word2vec_format('data/word2vec_twitter_model.bin', unicode_errors='ignore',
-                                                     binary=True)
+    def word2vec_feature_from_tweets(self, glove_input_file, embedd_dim):
+        # --- loaded saved features if it's exist ? ---
+        features_path = 'features/embedding_features.pkl'
+        if (os.path.exists(features_path)):
+            file = open(features_path, 'rb')
+            return pickle.load(file)
 
-        # get TFIDf for each word
-        tfidf = dict(zip(self.tfidf.get_feature_names(), self.tfidf.idf_))
+        # --- otherwise generate embedding features ---
+        word2vec = KeyedVectors.load_word2vec_format(glove_input_file, unicode_errors='ignore',
+                                                     binary=False)
 
+        # get tfidf from each word required in embedding features
+        _, tfidf_scores = self.tfidf_from_tweets()
+        tfidf = dict(zip(tfidf_scores.get_feature_names(), tfidf_scores.idf_))
+
+        # ---weighted-average tweet2vec. ---
         def build_average_Word2vec(tokens, size):
-            '''
-              computing average of weighted word2vec for each tweet.
-              :return:
-              '''
-            vec = np.zeros(size).reshape((1, size))
+            vec = np.zeros(size)
             count = 0.
             for word in tokens:
                 try:
-                    vec += word2vec[word].reshape((1, size)) * tfidf[
-                        word]  # each word vector is multiplied by word's importance (tfidf)
+                    vec += word2vec[word] * tfidf[word]
                     count += 1.
-                except KeyError:  # handling the case where the token is not
-                    #  in the corpus. useful for testing.
+                except KeyError:
                     continue
             if count != 0:
                 vec /= count
             return vec
 
-        tokenizer = TweetTokenizer()  # tweets tokenizer by nltk
-        self.norm_df['tweetsEmbedding'] = self.norm_df['norm_tweets'].apply(
-            lambda tweet: build_average_Word2vec(tokens=tokenizer.tokenize(tweet), size=400))
+        tokenizer = TweetTokenizer()
+        embedd_table = {}
+        for _, row in self.norm_df.iterrows():
+            tweet2vec = build_average_Word2vec(tokenizer.tokenize(row['norm_tweets']), size=embedd_dim)
+            embedd_table[row['tweet_id']] = tweet2vec
 
-        return self.norm_df['tweetsEmbedding']
+        # ----- saving embedding features to disk --------
+        file = open(features_path, 'wb')
+        pickle.dump(embedd_table, file)
+        file.close()
+
+        return embedd_table
+
+    # ----- extract embedding and sentiment features -----
+    def embedding_sentiment_features(self):
+        # load saved features if it's exist ?
+        feature_path = 'features/embedding_sentiment.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        self.sentiment_features_from_tweets()
+        embedding = self.word2vec_feature_from_tweets(glove_input_file='embeddings/glove.840B.300d.txt',
+                                                      embedd_dim=300)
+        for _, row in self.norm_df.iterrows():
+            embedding[row['tweet_id']] = np.append(embedding[row['tweet_id']], row['sentiment'])
+
+        # save embedding+sentiment features into disk (type: dic (tweet_id,<tweet2vec+sentiment>)
+        file = open(feature_path, 'wb')
+        pickle.dump(embedding, file)
+        file.close()
+
+        return embedding  # embedding and sentiment
+
+
+# ------------- main() for testing the code ------------- #
+'''
+Test embedding features, each tweet is represented as 
+(1) a matrix of (n_words , word2vec).
+(2) a weighted-average word2vec of all words embedding
+In this code, we consider the first representation 
+'''
+
+
+def main():
+    fe = FeatureExtraction()
+    sentiments = fe.sentiment_features_from_tweets()
+    embedd_senti = fe.embedding_sentiment_features()
+
+
+if __name__ == '__main__':
+    main()
