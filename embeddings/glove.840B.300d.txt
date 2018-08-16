@@ -1,0 +1,2 @@
+embedding pre-trained model
+download the glove pre-trained model into embeddings folder. 
