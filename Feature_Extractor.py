@@ -1,5 +1,5 @@
 import numpy as np
-import spacy, re
+import spacy
 from gensim.models.keyedvectors import KeyedVectors
 from nltk.tokenize import TweetTokenizer
 from sklearn import preprocessing
@@ -87,40 +87,3 @@ class FeatureExtraction:
             lambda tweet: build_average_Word2vec(tokens=tokenizer.tokenize(tweet), size=400))
 
         return self.norm_df['tweetsEmbedding']
-
-    def create_bag_of_concepts(self):
-        '''
-        For each tweet, extracts concepts from Babelnet and creates feature vectors of dimension (300, )
-        :return:
-        '''
-        nlp = spacy.load('en_core_web_lg')
-        text_col = self.norm_df['text']
-        vect_col = []
-
-        for tweet in text_col:
-            tweet = self.hepler_fe.emoji_to_text(tweet)
-            tweet = self.hepler_fe.expand_contractions(tweet)
-            tweet = re.sub('#', '', tweet)
-            tweet = re.sub('RT', '', tweet)
-            concepts = self.hepler_fe.extract_concepts_from_babelnet(tweet)
-
-            # list comprehension to get the vectors for each word
-            word_vector_list = [nlp(word).vector for word in concepts]
-
-            # calculate the mean across each word
-            average_word_vector = np.mean(word_vector_list, axis=0)
-            vect_col.append(average_word_vector)
-
-        boc_array = np.asanyarray(vect_col)
-        self.norm_df['bocEmbedding'] = boc_array
-
-        return self.norm_df['bocEmbedding']
-
-
-
-
-
-
-
-
-

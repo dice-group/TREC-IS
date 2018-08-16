@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import pickle
@@ -27,13 +28,12 @@ class Preprocessing:
         self.trec_path = trec_path
         self.tweets_dir = tweets_dir
 
-    def load_Events(self):
+    def load_Events(self, path):
         '''
         load events information from the json file.
         :return: all events information as a DataFrame: (identifier, name, description,type, imageURL, annotationTableName)
         '''
-
-        events_annotation = json.load(open(self.path))
+        events_annotation = json.load(open(path))
         events = pd.DataFrame.from_dict(events_annotation['annotator'], orient='columns')['eventsAnnotated']
 
         return events
@@ -77,8 +77,7 @@ class Preprocessing:
         retrieved_tweets = self.load_Tweets()
 
         missed_tweets = []
-
-        training_data = {}
+        training_data = {}  # dict {'tweet id': Tweet}
 
         # load TREC data data: tweetsID, tweet_priority, tweet_categories, indicator_terms
         events = json.load(open(self.trec_path))
@@ -88,7 +87,6 @@ class Preprocessing:
             for trec_tweet in event['tweets']:
 
                 if trec_tweet['postID'] in retrieved_tweets:  # check if tweets_full is retrieved ?
-
                     retriev_tweet = retrieved_tweets[trec_tweet['postID']]
 
                     training_data[trec_tweet['postID']] = Tweet(id=retriev_tweet.id, text=retriev_tweet.text,
@@ -115,28 +113,28 @@ class Preprocessing:
         return training_data
 
     def save_trainingData(self):
-        '''
-        Saving preprocessed tweets training data into file
-        :return:
-        '''
 
-        file = open('data/preprocessed_data.pkl', 'wb')
         trainingData = self.get_traing_data()
-
+        # save TREC-data as an object
+        file = open('data/TREC-data.pkl', 'wb')
         pickle.dump(trainingData, file)
-
         file.close()
 
-    def load_training_data(self):
-        '''
-        Loading preprocessed tweets.
-        :return:
-        '''
-        file = open('data/preprocessed_data.pkl', 'rb')
+        # save TREC-data as csv
+        with open('data/TREC-data.csv', 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['tweet_id', 'categories', 'text', 'indicatorTerms', 'metadata', 'priority'])
+            for key, value in trainingData.items():
+                tweet = trainingData[key]
+                writer.writerow([tweet.id, tweet.categories, tweet.text, tweet.indicatorTerms,
+                                 tweet.metadata, tweet.priority])
+        csv_file.close()
 
-        trainingData = pickle.load(file)
-
-        file.close()
+    def load_training_data(self, trec_data_path='data/TREC-data.pkl'):
+        if (os.path.exists(trec_data_path)):
+            file = open('data/preprocessed_data.pkl', 'rb')
+            trainingData = pickle.load(file)
+            file.close()
 
         return trainingData
 
@@ -144,11 +142,41 @@ class Preprocessing:
         data = self.load_training_data()
         tweet_list = []
         for _, tweet in data.items():
-            #if tweet.metadata is not None and tweet.metadata.get('entities.hashtags') is not None:
+            # if tweet.metadata is not None and tweet.metadata.get('entities.hashtags') is not None:
             tweet_list.append(
-                    {'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text, 'metadata': tweet.metadata })
+                {'tweet_id': tweet.id, 'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms,
+                 'text': tweet.text, 'metadata': tweet.metadata})
             # else:
             #     tweet_list.append(
             #         {'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text})
-        tweet_df = pd.DataFrame(tweet_list, columns=['categories', 'indicatorTerms', 'text', 'metadata'])
+        tweet_df = pd.DataFrame(tweet_list, columns=['tweet_id', 'categories', 'indicatorTerms', 'text', 'metadata'])
+
         return tweet_df
+
+
+# --- main() for testing the code ---
+def main():
+    from secrets import consumer_key, consumer_secret, access_token, access_token_secret
+
+    tweetsPrp = Preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
+
+    tweetsPrp.consumer_key = consumer_key
+    tweetsPrp.consumer_secret = consumer_secret
+    tweetsPrp.access_token = access_token
+    tweetsPrp.access_token_secret = access_token_secret
+
+    tweetsPrp.save_trainingData()
+
+    # -- load Information types --
+    #
+    #  tweetsPrp = Preprocessing()
+    #
+    # # loading information types in test data
+    # information_types = tweetsPrp.load_InformationType('data/test data/ITR-H.types.v2.json')
+    #
+    # for _, item in information_types.iteritems():
+    #     print(item['id'], ' => ', item['desc'])
+
+
+if __name__ == '__main__':
+    main()
