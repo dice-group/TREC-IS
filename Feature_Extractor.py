@@ -3,17 +3,25 @@ import pickle
 import re
 
 import numpy as np
+import pandas as pd
+
+pd.set_option('mode.chained_assignment', None)
+
+
 import spacy
 from gensim.models import KeyedVectors
 from nltk import TweetTokenizer
+
 from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+
 from textblob import TextBlob
 
 from Helper_Feature_Extractor import Helper_FeatureExtraction
-from Preprocessing import Preprocessing
 
+from Preprocessing import Preprocessing
+from DeepModel import Model
 
 class FeatureExtraction:
     def __init__(self):
@@ -152,9 +160,6 @@ class FeatureExtraction:
 
         return self.norm_df['bocEmbedding']
 
-
-
-
 # ------------- main() for testing the code ------------- #
 '''
 Test embedding features, each tweet is represented as 
@@ -163,12 +168,25 @@ Test embedding features, each tweet is represented as
 In this code, we consider the first representation 
 '''
 
-
 def main():
     fe = FeatureExtraction()
-    sentiments = fe.sentiment_features_from_tweets()
-    embedd_senti = fe.embedding_sentiment_features()
+    # --- load training data ---
+    data = fe.norm_df[['tweet_id', 'categories']]
+    data.set_index('tweet_id', inplace=True)
 
+    data['emb_senti_features'] = np.nan
+    data['emb_senti_features'] = data['emb_senti_features'].astype(object)
+
+    emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+
+    for id, row in data.iterrows():
+        data.at[id, 'emb_senti_features'] = emb_senti_features[id]
+
+    # -- Ok let's train a simple deep model --
+    simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
+    simpleModel.simple_DeepModel()
+
+    simpleModel.evaluate_model()
 
 if __name__ == '__main__':
     main()
