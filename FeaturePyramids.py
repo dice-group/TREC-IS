@@ -1,6 +1,4 @@
 import itertools as it
-
-
 class Features:
 
     def generate_Features(self, features):
@@ -35,8 +33,11 @@ def main():
     features = [A, B, C]
 
     featurePyramids = fe.generate_Features(features)
-    print(featurePyramids)
 
+    i = 0
+    for feature in featurePyramids:
+        print('Feature set' + str(i), feature)
+        i += 1
 
 if __name__ == '__main__':
     main()
