@@ -126,6 +126,7 @@ class Preprocessing:
     def load_training_data(self, trec_data_path='data/TREC-data.pkl'):
         if (os.path.exists(trec_data_path)):
             file = open('data/TREC-data.pkl', 'rb')
+            file = open(trec_data_path, 'rb')
             trainingData = pickle.load(file)
             file.close()
 

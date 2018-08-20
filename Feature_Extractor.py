@@ -3,12 +3,19 @@ import pickle
 import re
 
 import numpy as np
+import pandas as pd
+
+pd.set_option('mode.chained_assignment', None)
+
+
 import spacy
 from gensim.models import KeyedVectors
 from nltk import TweetTokenizer
+
 from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+
 from textblob import TextBlob
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -18,8 +25,9 @@ import itertools
 import pickle
 
 from Helper_Feature_Extractor import Helper_FeatureExtraction
-from Preprocessing import Preprocessing
 
+from Preprocessing import Preprocessing
+from DeepModel import Model
 
 class FeatureExtraction:
     def __init__(self):
@@ -255,14 +263,10 @@ class FeatureExtraction:
 
         return embed_table
 
-    def pad_or_truncate(self, some_list, target_len, pad_with):
-        return some_list[:target_len] + [0] * (target_len - len(some_list))
-
-
     def encode_synsets_from_babelfy(self):
         '''
         Uses one-hot encoding to create feature_vectors from the synsets returned by Babelfy
-        :param text:
+        :param:
         :return:
         '''
 
@@ -274,8 +278,7 @@ class FeatureExtraction:
         text_col = self.norm_df['text']
         all_synsets = []   # a list of all synsets in the dataset
         tweet_synsets = [] #for each tweet, preserves its synsets
-        input_list = []
-        maxlen = 0
+
         for tweet in text_col:
             synset_list = []   # list of synsetIDs for one tweet
             tweet = self.hepler_fe.emoji_to_text(tweet)
@@ -350,7 +353,6 @@ class FeatureExtraction:
 
         return bow_table  # bow and boc
 
-
 # ------------- main() for testing the code ------------- #
 '''
 Test embedding features, each tweet is represented as 
@@ -359,12 +361,25 @@ Test embedding features, each tweet is represented as
 In this code, we consider the first representation 
 '''
 
-
 def main():
     fe = FeatureExtraction()
-    sentiments = fe.sentiment_features_from_tweets()
-    embedd_senti = fe.embedding_sentiment_features()
+    # --- load training data ---
+    data = fe.norm_df[['tweet_id', 'categories']]
+    data.set_index('tweet_id', inplace=True)
 
+    data['emb_senti_features'] = np.nan
+    data['emb_senti_features'] = data['emb_senti_features'].astype(object)
+
+    emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+
+    for id, row in data.iterrows():
+        data.at[id, 'emb_senti_features'] = emb_senti_features[id]
+
+    # -- Ok let's train a simple deep model --
+    simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
+    simpleModel.simple_DeepModel()
+
+    simpleModel.evaluate_model()
 
 if __name__ == '__main__':
     main()
