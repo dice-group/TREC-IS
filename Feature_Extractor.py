@@ -39,13 +39,20 @@ class FeatureExtraction:
         self.tfidf_feature, self.tfidf = self.tfidf_from_tweets()
         self.countVec_feature = self.countVec_from_tweets()
 
-    def reduce_dimensions(self, feature_matrix, n_components=300, perform_pca = True, perform_truncated_svd= False):
-        if perform_pca:
+    def reduce_dimensions(self, feature_matrix, n_components=300, method='pca'):
+        '''
+
+        :param feature_matrix:
+        :param n_components:
+        :param method: 'pca', 'svd'
+        :return:
+        '''
+        if method=='pca':
             pca = PCA(n_components=n_components)
             matrix_reduced = pca.fit_transform(feature_matrix)
             return matrix_reduced
 
-        if perform_truncated_svd:
+        elif method=='svd':
             svd = TruncatedSVD(n_components)
             matrix_reduced = svd.fit_transform(feature_matrix)
             return matrix_reduced
@@ -60,7 +67,7 @@ class FeatureExtraction:
         self.df['norm_tweets'] = new_col
         return self.df
 
-    def tfidf_from_tweets(self, dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', norm='l2', ngram_range=(1, 1), use_idf=True,
+    def tfidf_from_tweets(self, dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', norm='l2', ngram_range=(1, 1), use_idf=True,
                           preprocessor=None, tokenizer=None, stop_words=None, max_df=1.0, min_df=1,
                           max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
 
@@ -72,12 +79,11 @@ class FeatureExtraction:
         feature_matrix = tfidf.fit_transform(self.norm_df['norm_tweets'])
 
         if dimensionality_reduction:
-            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, perform_pca=perform_pca,
-                                          perform_truncated_svd=perform_truncated_svd), tfidf
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method), tfidf
 
         return feature_matrix.toarray(), tfidf
 
-    def countVec_from_tweets(self, dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', ngram_range=(1, 1),
+    def countVec_from_tweets(self, dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', ngram_range=(1, 1),
                              preprocessor=None, tokenizer=None, stop_words=None,
                      max_df=1.0, min_df=1,  max_features=None, vocabulary=None ):
 
@@ -87,12 +93,11 @@ class FeatureExtraction:
         feature_matrix = count_vec.fit_transform(self.norm_df['norm_tweets'])
 
         if dimensionality_reduction:
-            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, perform_pca=perform_pca,
-                                          perform_truncated_svd=perform_truncated_svd)
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method)
 
         return feature_matrix.toarray()
 
-    def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', ngram_range=(1, 1),
+    def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', ngram_range=(1, 1),
                      use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
                      max_df=1.0, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
         '''
@@ -100,6 +105,7 @@ class FeatureExtraction:
         :param mode: {'countVec', 'tfidf'}
         :param norm: used to normalize term vectors {'l1', 'l2', None}
         :param dimensionality_reduction: {'true', 'false'}
+        :param method: {'pca', 'svd'}
         :param n_components: int, reduced dimesion = 300 by default
         :param analyzer: {'word', 'char'} or callable for tf-idf , {‘word’, ‘char’, ‘char_wb’} or callable for countVec
         :param ngram_range: tuple(min_n, max_n)
@@ -122,13 +128,13 @@ class FeatureExtraction:
             return pickle.load(file)
 
         if mode == 'countVec':
-            feature_matrix = self.countVec_from_tweets(dimensionality_reduction=dimensionality_reduction,perform_pca=perform_pca,perform_truncated_svd=perform_truncated_svd, n_components=n_components, analyzer=analyzer,
+            feature_matrix = self.countVec_from_tweets(dimensionality_reduction=dimensionality_reduction,method=method, n_components=n_components, analyzer=analyzer,
                                                 ngram_range=ngram_range, preprocessor=preprocessor, tokenizer=tokenizer,
                                                 stop_words=stop_words, max_df=max_df, min_df=min_df,
                                                 max_features=max_features, vocabulary=vocabulary)
         else:
             # tf-idf - returns feature_matrix, tfidf mapping
-            feature_matrix, tfidf = self.tfidf_from_tweets(dimensionality_reduction=dimensionality_reduction, perform_pca=perform_pca,perform_truncated_svd=perform_truncated_svd, n_components=n_components, analyzer= analyzer,
+            feature_matrix, tfidf = self.tfidf_from_tweets(dimensionality_reduction=dimensionality_reduction, method=method, n_components=n_components, analyzer= analyzer,
                                              norm= norm, ngram_range= ngram_range, use_idf= use_idf,
                                              preprocessor= preprocessor, tokenizer= tokenizer, stop_words= stop_words,
                                              max_df= max_df, min_df= min_df,  max_features= max_features, vocabulary= vocabulary,
@@ -306,7 +312,7 @@ class FeatureExtraction:
 
         # convert list of synset_ids to one-hot representation
         mlb = MultiLabelBinarizer()
-        boc_features = mlb.fit_transform(synset_ids)
+        boc_features = mlb.fit_transform(tweet_synsets)
 
         embed_table = {}
 

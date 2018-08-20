@@ -4,11 +4,13 @@ from collections import Counter
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
 import numpy as np
+import pickle
 
+from tpot import TPOTClassifier
 from Evaluation import Evaluation
 from Feature_Extractor import FeatureExtraction
 from Helper_Feature_Extractor import Helper_FeatureExtraction
@@ -71,22 +73,16 @@ print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 fe = FeatureExtraction()
 
 
-bow_dict = fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, perform_pca=False,perform_truncated_svd=True, n_components=300, analyzer='word', ngram_range=(1, 1),
+bow_dict = fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method= 'svd', n_components=300, analyzer='word', ngram_range=(1, 1),
                      use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
                      max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False)
 
-bow_list = []
-
-for row in bow_dict:
-    bow_list.append(bow_dict[row])
-
-bow = np.asarray(bow_list)
 
 '''
-
 :param mode: {'countVec', 'tfidf'}
 :param norm: used to normalize term vectors {'l1', 'l2', None}
 :param dimensionality_reduction: {'true', 'false'}
+:param method: {'pca', 'svd'}
 :param n_components: int, reduced dimesion = 300 by default
 :param analyzer: {'word', 'char'} or callable for tf-idf , {‘word’, ‘char’, ‘char_wb’} or callable for countVec
 :param ngram_range: tuple(min_n, max_n)
@@ -102,6 +98,16 @@ bow = np.asarray(bow_list)
 :param sublinear_tf: boolean, default=False
 :return:
 '''
+
+
+data = fe.norm_df[['tweet_id', 'categories']]
+data.set_index('tweet_id', inplace=True)
+data['bow_features'] = np.nan
+data['bow_features'] = data['bow_features'].astype(object)
+
+
+for id, row in data.iterrows():
+    data.at[id, 'bow_features'] = bow_dict[id]
 
 df = fe.norm_df
 print(df.head(5))
@@ -120,7 +126,7 @@ kf = 2
 entries = []
 for model in models:
     model_name = model.__class__.__name__
-    scores = cross_val_score(model, bow, df['categories'], scoring='accuracy', cv=kf)
+    scores = cross_val_score(model, data['bow_features'].tolist(), data['categories'].tolist() , scoring='accuracy', cv=kf)
     for fold_idx, accuracy in enumerate(scores):
         entries.append((model_name, fold_idx, accuracy))
 
@@ -138,23 +144,28 @@ print ('average accuracy: ', mean_acc)
 Concepts are extracted from BabelNet (and Babelfy) after replacing emojis with text, expanding contractions and removing '#' and 'RT'
 from each tweet.   
 '''
+
+data = fe.norm_df[['tweet_id', 'categories']]
+data.set_index('tweet_id', inplace=True)
+data['boc_features'] = np.nan
+data['boc_features'] = data['boc_features'].astype(object)
+
+boc_features = fe.encode_synsets_from_babelfy()
+
+for id, row in data.iterrows():
+    data.at[id, 'boc_features'] = boc_features[id]
+
 # boc_embedding = fe.create_bag_of_concepts()
 # print(boc_embedding[:3])
 # print(boc_embedding.shape)
 # print(fe.norm_df.head(5))
-boc_embedding = fe.encode_synsets_from_babelfy()
-boc_list = []
+# boc_embedding = fe.encode_synsets_from_babelfy()
 
-for row in boc_embedding:
-    boc_list.append(boc_embedding[row])
-
-boc_features = np.asarray(boc_list)
-print(boc_features.shape)
 
 entries = []
 for model in models:
     model_name = model.__class__.__name__
-    scores = cross_val_score(model, boc_features, df['categories'], scoring='accuracy', cv=kf)
+    scores = cross_val_score(model, data['boc_features'].tolist(), data['categories'].tolist(), scoring='accuracy', cv=kf)
     for fold_idx, accuracy in enumerate(scores):
         entries.append((model_name, fold_idx, accuracy))
 
@@ -166,19 +177,19 @@ print ('average accuracy: ', mean_acc)
 
 #------------------- Testing BOW and BOC-encoding features -----------#
 
-embed_dict = fe.bow_boc_features()
-features = []
+# embed_dict = fe.bow_boc_features()
+data['bow_boc'] = np.nan
+data['bow_boc'] = data['bow_boc'].astype(object)
 
-for row in embed_dict:
-    features.append(embed_dict[row])
+bow_boc = pickle.load(open('features/boc-bow.pkl', 'rb'))
 
-bow_boc = np.asarray(features)
-print(bow_boc.shape)
+for id, row in data.iterrows():
+    data.at[id, 'bow_boc'] = bow_boc[id]
 
 entries = []
 for model in models:
     model_name = model.__class__.__name__
-    scores = cross_val_score(model, bow_boc, df['categories'], scoring='accuracy', cv=kf)
+    scores = cross_val_score(model, data['bow_boc'].tolist(), data['categories'].tolist(), scoring='accuracy', cv=kf)
     for fold_idx, accuracy in enumerate(scores):
         entries.append((model_name, fold_idx, accuracy))
 
@@ -186,6 +197,8 @@ cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
 print('Accuracy with BOW-BOC')
 mean_acc = cv_df.groupby('model_name').accuracy.mean()
 print ('average accuracy: ', mean_acc)
+
+
 
 # ------------------ Testing Sentiment and Embedding Features---------#
 '''
