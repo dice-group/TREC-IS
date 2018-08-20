@@ -1,11 +1,13 @@
 import pandas as pd
-import spacy
+import spacy, collections
+from collections import Counter
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
+import numpy as np
 
 from Evaluation import Evaluation
 from Feature_Extractor import FeatureExtraction
@@ -27,19 +29,9 @@ count = 0
 for _, tweet in training_Data.items():
     #print('categories: ',  tweet.categories, 'indicatorTerms: ', tweet.indicatorTerms, 'text: ', tweet.text, 'metadata: ', tweet.metadata)
     count = count + 1
-#     #print(tweet.metadata.get('entities.hashtags') if tweet.metadata.get('entities.hashtags') else 'False')
-#
-#     if tweet.metadata is not None and tweet.metadata.get('entities.hashtags') is not None:
-#         print('metadata: ', tweet.metadata['entities.hashtags'])
-#         list_of_tweets.append({'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text, 'entites_hashtags': tweet.metadata['entities.hashtags']})
-#     else:
-#         list_of_tweets.append(
-#             {'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms, 'text': tweet.text})
-# tweet_df = pd.DataFrame(list_of_tweets, columns=['categories', 'indicatorTerms', 'text', 'entity_hashtags'])
-# print(tweet_df.head(2))
-#print(count)
+
 input = tweetsPrp.load_input_feature_extraction()
-#print(input.head(2))
+
 # test evaluating of tweets classification with random y_true and y_predicted values:
 y_true = [1, 2, 4, 1, 5, 1, 1, 2, 1, 3, 3, 1, 1, 0, 5, 2]
 y_pred = [1, 3, 4, 3, 5, 1, 1, 3, 1, 3, 4, 1, 1, 2, 5, 2]
@@ -49,40 +41,87 @@ eval = Evaluation(y_true, y_pred)
 #print('Classification overall performance: F1 score', eval.f1_score)
 #print('Classification accuracy: ', eval.accuracy_score)
 
-##check normalized tweet
+# ------------check normalized tweet--------------------------
+
 helper = Helper_FeatureExtraction()
 nlp = spacy.load('en')
 text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
 print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 
+# for _, tweet in training_Data.items():
+#     if tweet.text:
+#         helper.expand_twitterLingo(tweet.text)
+
+# helper = Helper_FeatureExtraction()
+# nlp = spacy.load('en')
+# text = "the no. 1 tourist spot in cagayan de oro 👐🙌👈 #bridge #rotonda #flood #highflood #omg #pabloph # @ the bridge http://t.co/upvoomhi"
+# #text = """rt @itsshowtime: #pabloph
+# ▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+# ✞✞✞ ✞ ｐｒａｙ ｆｏｒ ｔｈｅ ｐｈｉｌｉｐｐｉｎｅｓ ✞✞✞✞
+# ▬▬▬▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬"""
+# print('emoji to text: ', helper.emoji_to_text(text))
+# print('no emojis: ', helper.remove_emojis(text))
+# print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
+# text = helper.emoji_to_text(text)
+# print('concepts: ', helper.extract_concepts_from_babelnet(text))
+
+
 #---------- Feature Extraction ---------
 
 fe = FeatureExtraction()
 
-bow = fe.bow_feature
-# bow = fe.tfidf_feature
 
-df = fe.get_dataframe_for_normalized_tweets()
+bow_dict = fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, perform_pca=False,perform_truncated_svd=True, n_components=300, analyzer='word', ngram_range=(1, 1),
+                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
+                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False)
 
+bow_list = []
+
+for row in bow_dict:
+    bow_list.append(bow_dict[row])
+
+bow = np.asarray(bow_list)
+
+'''
+
+:param mode: {'countVec', 'tfidf'}
+:param norm: used to normalize term vectors {'l1', 'l2', None}
+:param dimensionality_reduction: {'true', 'false'}
+:param n_components: int, reduced dimesion = 300 by default
+:param analyzer: {'word', 'char'} or callable for tf-idf , {‘word’, ‘char’, ‘char_wb’} or callable for countVec
+:param ngram_range: tuple(min_n, max_n)
+:param use_idf: boolean, default = True
+:param preprocessor: callable or None (default)
+:param tokenizer: callable or None (default)
+:param stop_words: string {‘english’}, list, or None (default)
+:param max_df: float in range [0.0, 1.0] or int, default=1.0
+:param min_df: float in range [0.0, 1.0] or int, default=1
+:param max_features: int or None, default=None
+:param vocabulary: Mapping or iterable, optional
+:param smooth_idf: boolean, default=True
+:param sublinear_tf: boolean, default=False
+:return:
+'''
+
+df = fe.norm_df
 print(df.head(5))
 
 models = [
     RandomForestClassifier(n_estimators=20, max_depth=3, random_state=42),
     LinearSVC(random_state=42),
-    MultinomialNB(),
+    #MultinomialNB(),
     LogisticRegression(random_state=42, solver='newton-cg'),
     tree.DecisionTreeClassifier(random_state=42)
 
 ]
 
-kf = 10
+kf = 2
 
 entries = []
 for model in models:
     model_name = model.__class__.__name__
     scores = cross_val_score(model, bow, df['categories'], scoring='accuracy', cv=kf)
     for fold_idx, accuracy in enumerate(scores):
-        #print (model_name, fold_idx, accuracy)
         entries.append((model_name, fold_idx, accuracy))
 
 cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
@@ -94,18 +133,59 @@ cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
 mean_acc = cv_df.groupby('model_name').accuracy.mean()
 print ('average accuracy: ', mean_acc)
 
-#clf = MultinomialNB().fit(train_bow, train_cat)
-#clf = MultinomialNB()
+#------------------- Bag of Concepts ---------------------------------#
+'''
+Concepts are extracted from BabelNet (and Babelfy) after replacing emojis with text, expanding contractions and removing '#' and 'RT'
+from each tweet.   
+'''
+# boc_embedding = fe.create_bag_of_concepts()
+# print(boc_embedding[:3])
+# print(boc_embedding.shape)
+# print(fe.norm_df.head(5))
+boc_embedding = fe.encode_synsets_from_babelfy()
+boc_list = []
 
-#scores = cross_validate(clf, train_bow, train_cat, scoring=scoring, cv=10, return_train_score=True)
-#sorted(scores.keys())
-#print(scores)
-#prediction = clf.predict(val_bow)
-#eval = Evaluation(val_cat, prediction)
+for row in boc_embedding:
+    boc_list.append(boc_embedding[row])
+
+boc_features = np.asarray(boc_list)
+print(boc_features.shape)
+
+entries = []
+for model in models:
+    model_name = model.__class__.__name__
+    scores = cross_val_score(model, boc_features, df['categories'], scoring='accuracy', cv=kf)
+    for fold_idx, accuracy in enumerate(scores):
+        entries.append((model_name, fold_idx, accuracy))
+
+cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
+print('Accuracy with Bag of concepts')
+mean_acc = cv_df.groupby('model_name').accuracy.mean()
+print ('average accuracy: ', mean_acc)
 
 
-#print('Classification overall performance: F1 score', eval.f1_score)
-#print('Classification accuracy: ', eval.accuracy_score)
+#------------------- Testing BOW and BOC-encoding features -----------#
+
+embed_dict = fe.bow_boc_features()
+features = []
+
+for row in embed_dict:
+    features.append(embed_dict[row])
+
+bow_boc = np.asarray(features)
+print(bow_boc.shape)
+
+entries = []
+for model in models:
+    model_name = model.__class__.__name__
+    scores = cross_val_score(model, bow_boc, df['categories'], scoring='accuracy', cv=kf)
+    for fold_idx, accuracy in enumerate(scores):
+        entries.append((model_name, fold_idx, accuracy))
+
+cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
+print('Accuracy with BOW-BOC')
+mean_acc = cv_df.groupby('model_name').accuracy.mean()
+print ('average accuracy: ', mean_acc)
 
 # ------------------ Testing Sentiment and Embedding Features---------#
 '''

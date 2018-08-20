@@ -10,6 +10,12 @@ from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from textblob import TextBlob
+from sklearn.decomposition import TruncatedSVD, PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.preprocessing import MultiLabelBinarizer
+from collections import defaultdict
+import itertools
+import pickle
 
 from Helper_Feature_Extractor import Helper_FeatureExtraction
 from Preprocessing import Preprocessing
@@ -21,8 +27,21 @@ class FeatureExtraction:
         self.df = self.tweetsPrp.load_input_feature_extraction()
         self.nlp = spacy.load('en')
         self.hepler_fe = Helper_FeatureExtraction()
-
         self.norm_df = self.create_dataframe_for_normalized_tweets()
+        self.tfidf_feature, self.tfidf = self.tfidf_from_tweets()
+        self.countVec_feature = self.countVec_from_tweets()
+
+    def reduce_dimensions(self, feature_matrix, n_components=300, perform_pca = True, perform_truncated_svd= False):
+        if perform_pca:
+            pca = PCA(n_components=n_components)
+            matrix_reduced = pca.fit_transform(feature_matrix)
+            return matrix_reduced
+
+        if perform_truncated_svd:
+            svd = TruncatedSVD(n_components)
+            matrix_reduced = svd.fit_transform(feature_matrix)
+            return matrix_reduced
+
 
     def create_dataframe_for_normalized_tweets(self):
         self.df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
@@ -33,27 +52,91 @@ class FeatureExtraction:
         self.df['norm_tweets'] = new_col
         return self.df
 
-    def tfidf_from_tweets(self):
-        self.df = self.create_dataframe_for_normalized_tweets()
-        tfidf = TfidfVectorizer(analyzer='word', ngram_range=(1, 1), use_idf=True)
-        feature_matrix = tfidf.fit_transform(self.df['norm_tweets'])
-        return feature_matrix, tfidf
+    def tfidf_from_tweets(self, dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', norm='l2', ngram_range=(1, 1), use_idf=True,
+                          preprocessor=None, tokenizer=None, stop_words=None, max_df=1.0, min_df=1,
+                          max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
 
-    def bow_features_from_tweets(self):
-        self.df = self.create_dataframe_for_normalized_tweets()
-        bow = CountVectorizer(analyzer='word', ngram_range=(1, 1))
-        feature_matrix = bow.fit_transform(self.df['norm_tweets'])
-        return feature_matrix
+        tfidf = TfidfVectorizer(analyzer= analyzer, norm= norm, ngram_range= ngram_range, use_idf= use_idf,
+                    preprocessor= preprocessor, tokenizer= tokenizer, stop_words= stop_words,
+                    max_df= max_df, min_df= min_df,  max_features= max_features, vocabulary= vocabulary,
+                    smooth_idf= smooth_idf, sublinear_tf= sublinear_tf)
 
-    def bow_features_from_tweets(self):
-        count_vec = CountVectorizer(analyzer='word', ngram_range=(1, 1))
+        feature_matrix = tfidf.fit_transform(self.norm_df['norm_tweets'])
+
+        if dimensionality_reduction:
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, perform_pca=perform_pca,
+                                          perform_truncated_svd=perform_truncated_svd), tfidf
+
+        return feature_matrix.toarray(), tfidf
+
+    def countVec_from_tweets(self, dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', ngram_range=(1, 1),
+                             preprocessor=None, tokenizer=None, stop_words=None,
+                     max_df=1.0, min_df=1,  max_features=None, vocabulary=None ):
+
+        count_vec = CountVectorizer(analyzer=analyzer, ngram_range=ngram_range, preprocessor=preprocessor, tokenizer=tokenizer, stop_words=stop_words,
+                     max_df=max_df, min_df=min_df,  max_features=max_features, vocabulary=vocabulary )
+
         feature_matrix = count_vec.fit_transform(self.norm_df['norm_tweets'])
-        # ------------------- using TF-IDF transformer over count_vectorizer--------------
-        # x_train_counts = count_vec.fit_transform(self.df['norm_tweets'])
-        # tfidf_transformer = TfidfTransformer()
-        # feature_matrix = tfidf_transformer.fit_transform(x_train_counts)
 
-        return feature_matrix
+        if dimensionality_reduction:
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, perform_pca=perform_pca,
+                                          perform_truncated_svd=perform_truncated_svd)
+
+        return feature_matrix.toarray()
+
+    def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, perform_pca = True, perform_truncated_svd= False, n_components=300, analyzer='word', ngram_range=(1, 1),
+                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
+                     max_df=1.0, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
+        '''
+
+        :param mode: {'countVec', 'tfidf'}
+        :param norm: used to normalize term vectors {'l1', 'l2', None}
+        :param dimensionality_reduction: {'true', 'false'}
+        :param n_components: int, reduced dimesion = 300 by default
+        :param analyzer: {'word', 'char'} or callable for tf-idf , {‘word’, ‘char’, ‘char_wb’} or callable for countVec
+        :param ngram_range: tuple(min_n, max_n)
+        :param use_idf: boolean, default = True
+        :param preprocessor: callable or None (default)
+        :param tokenizer: callable or None (default)
+        :param stop_words: string {‘english’}, list, or None (default)
+        :param max_df: float in range [0.0, 1.0] or int, default=1.0
+        :param min_df: float in range [0.0, 1.0] or int, default=1
+        :param max_features: int or None, default=None
+        :param vocabulary: Mapping or iterable, optional
+        :param smooth_idf: boolean, default=True
+        :param sublinear_tf: boolean, default=False
+        :return:
+        '''
+        # --- loaded saved features if it's exist ? ---
+        features_path = 'features/bow_embedding.pkl'
+        if (os.path.exists(features_path)):
+            file = open(features_path, 'rb')
+            return pickle.load(file)
+
+        if mode == 'countVec':
+            feature_matrix = self.countVec_from_tweets(dimensionality_reduction=dimensionality_reduction,perform_pca=perform_pca,perform_truncated_svd=perform_truncated_svd, n_components=n_components, analyzer=analyzer,
+                                                ngram_range=ngram_range, preprocessor=preprocessor, tokenizer=tokenizer,
+                                                stop_words=stop_words, max_df=max_df, min_df=min_df,
+                                                max_features=max_features, vocabulary=vocabulary)
+        else:
+            # tf-idf - returns feature_matrix, tfidf mapping
+            feature_matrix, tfidf = self.tfidf_from_tweets(dimensionality_reduction=dimensionality_reduction, perform_pca=perform_pca,perform_truncated_svd=perform_truncated_svd, n_components=n_components, analyzer= analyzer,
+                                             norm= norm, ngram_range= ngram_range, use_idf= use_idf,
+                                             preprocessor= preprocessor, tokenizer= tokenizer, stop_words= stop_words,
+                                             max_df= max_df, min_df= min_df,  max_features= max_features, vocabulary= vocabulary,
+                                             smooth_idf= smooth_idf, sublinear_tf= sublinear_tf)
+
+        embedd_table = {}
+        for row, feature_vec in zip(self.norm_df['tweet_id'], feature_matrix):
+            embedd_table[row] = feature_vec
+
+        # ----- saving embedding features to disk --------
+        file = open(features_path, 'wb')
+        pickle.dump(embedd_table, file)
+        file.close()
+
+        return embedd_table
+
 
     def sentiment_features_from_tweets(self):
         self.norm_df['sentiment'] = self.norm_df['text'].apply(
@@ -129,6 +212,12 @@ class FeatureExtraction:
         For each tweet, extracts concepts from Babelnet and creates feature vectors of dimension (300, )
         :return:
         '''
+
+        feature_path = 'features/boc_wordEmbeddings.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
         nlp = spacy.load('en_core_web_lg')
         text_col = self.norm_df['text']
         vect_col = []
@@ -142,17 +231,124 @@ class FeatureExtraction:
 
             # list comprehension to get the vectors for each word
             word_vector_list = [nlp(word).vector for word in concepts]
+            # print(len(word_vector_list), ' : ', word_vector_list)
 
-            # calculate the mean across each word
-            average_word_vector = np.mean(word_vector_list, axis=0)
+            # calculate the mean/sum across each word
+            average_word_vector = np.sum(word_vector_list, axis=0, keepdims=False)
+            # print('avg word vector : ' , average_word_vector.shape, average_word_vector)
             vect_col.append(average_word_vector)
 
         boc_array = np.asanyarray(vect_col)
         self.norm_df['bocEmbedding'] = boc_array
 
-        return self.norm_df['bocEmbedding']
+        embed_table = {}
+
+        for row, feature in zip(self.norm_df['tweet_id'], self.norm_df['bocEmbedding']):
+            embed_table[row] = feature
+
+        # print(embed_table)
+
+        # save embedding features into disk
+        file = open(feature_path, 'wb')
+        pickle.dump(embed_table, file)
+        file.close()
+
+        return embed_table
+
+    def pad_or_truncate(self, some_list, target_len, pad_with):
+        return some_list[:target_len] + [0] * (target_len - len(some_list))
 
 
+    def encode_synsets_from_babelfy(self):
+        '''
+        Uses one-hot encoding to create feature_vectors from the synsets returned by Babelfy
+        :param text:
+        :return:
+        '''
+
+        feature_path = 'features/boc_OHE.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        text_col = self.norm_df['text']
+        all_synsets = []   # a list of all synsets in the dataset
+        tweet_synsets = [] #for each tweet, preserves its synsets
+        input_list = []
+        maxlen = 0
+        for tweet in text_col:
+            synset_list = []   # list of synsetIDs for one tweet
+            tweet = self.hepler_fe.emoji_to_text(tweet)
+            tweet = self.hepler_fe.expand_contractions(tweet)
+            tweet = re.sub('#', '', tweet)
+            tweet = re.sub('RT', '', tweet)
+            synsetDict, scoreDict = self.hepler_fe.extract_synsets_from_babelfy(tweet)
+            for key in synsetDict.keys():
+                all_synsets.append(synsetDict[key])
+                synset_list.append(synsetDict[key])
+            tweet_synsets.append(synset_list)
+
+        print('all tweet synsets: ', tweet_synsets)
+        iterable_tweet_synsets = itertools.chain.from_iterable(tweet_synsets)
+
+        # create a dictionary that maps synsets to numerical ids
+        synset_to_id = {token: idx+1 for idx, token in enumerate(set(iterable_tweet_synsets))}
+
+        print('synset_to_ids: ', synset_to_id)
+
+        # convert synset lists to id-lists
+        synset_ids =[[synset_to_id[token] for token in synset_list] for synset_list in tweet_synsets]
+        print('synset_ids: ', synset_ids)
+        print('total synsets: ', len(synset_to_id))
+
+        # convert list of synset_ids to one-hot representation
+        mlb = MultiLabelBinarizer()
+        boc_features = mlb.fit_transform(synset_ids)
+
+        embed_table = {}
+
+        for row, feature in zip(self.norm_df['tweet_id'], boc_features):
+            embed_table[row] = feature
+
+        # save one-hot vectors into disk (type: {tweetID : <one-hot vector>} )
+        file = open(feature_path, 'wb')
+        pickle.dump(embed_table, file)
+        file.close()
+
+        return embed_table
+
+    # ----- extract bow and boc features -----
+    def bow_boc_features(self, mode='countVec', norm='l2', dimensionality_reduction=True,n_components=300, analyzer='word', ngram_range=(1, 1),
+                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
+                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
+
+        # load saved features if it's exist ?
+        feature_path = 'features/boc-bow.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        boc_table = self.encode_synsets_from_babelfy()   # --- one-hot encoders ----
+
+        #boc_table = self.create_bag_of_concepts()
+
+        bow_table = self.bow_features(mode=mode, norm=norm, dimensionality_reduction=dimensionality_reduction,n_components=n_components, analyzer=analyzer, ngram_range=ngram_range,
+                     use_idf=use_idf, preprocessor=preprocessor, tokenizer=tokenizer, stop_words=stop_words,
+                     max_df=max_df, min_df=min_df,  max_features=max_features, vocabulary=vocabulary, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf)
+
+        for _, row in self.norm_df.iterrows():
+            bow_table[row['tweet_id']] = np.append(bow_table[row['tweet_id']], boc_table[row['tweet_id']])
+
+
+        for row in bow_table:
+            bow_table[row] = np.append(bow_table[row], boc_table[row])
+
+        # save bow + boc features into disk (type: dic (tweet_id,<bow + boc>)
+        file = open(feature_path, 'wb')
+        pickle.dump(bow_table, file)
+        file.close()
+
+        return bow_table  # bow and boc
 
 
 # ------------- main() for testing the code ------------- #

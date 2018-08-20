@@ -1,6 +1,8 @@
 from contractions import CONTRACTION_MAP
 import string, spacy, nltk, re
 import emoji
+import json
+from emojipedia import Emojipedia
 from secrets import babelnet_key
 from difflib import get_close_matches
 import requests
@@ -50,7 +52,7 @@ class Helper_FeatureExtraction:
 
         synsetDict = dict(zip(mentions, synsetIDs))
         scoreDict = dict(zip(mentions, scores))
-        return (synsetDict, scoreDict)
+        return synsetDict, scoreDict
 
     def extract_concepts_from_babelnet(self, text):
         '''
@@ -67,31 +69,60 @@ class Helper_FeatureExtraction:
                 'id': synsetDict[k],
                 'key': key
             }
+
             r = requests.get(babelnet_url, params=params, headers={'Accept-encoding': 'gzip'})
             data = r.json()
-            main_sense = data['mainSense']
-            categories = data['categories']
 
-            category_terms = []
-            for category in categories:
-                category_terms.append(category.get('category'))
+            if 'mainSense' in data and 'categories' in data:
+                main_sense = data['mainSense']
+                categories = data['categories']
+                sep = '#'
+                main_sense = main_sense.split(sep, 1)[0]  # mainSense specific preprocessing
+                main_sense = main_sense.replace('_', ' ')
 
-            maxscore = 0
-            main_sense = main_sense.replace('#', '').replace('n1', '') #mainSense specific preprocessing
 
-            # if difflib returns an empty list, use cosine similarity from spacy
-            finalCategory = get_close_matches(main_sense, category_terms)
-            for cat in finalCategory:
-                concepts.append(cat)
+                category_terms = []
+                for category in categories:
+                    term = category.get('category')
+                    term = term.replace('_', ' ')
+                    category_terms.append(term)
 
-            if not finalCategory:
-                for term in category_terms:
-                    w1 = nlp(term)
-                    w2 = nlp(main_sense)
-                    score = w1.similarity(w2)
-                    maxscore = max(score, maxscore)
-                    if maxscore == score:
-                        concepts.append(term)
+                if (len(category_terms) == 0):
+                    concepts.append(main_sense)
+
+                else:
+                    maxscore = 0
+                    try:
+                        # if difflib returns an empty list, use cosine similarity from spacy
+                        finalCategory = get_close_matches(main_sense, category_terms)
+                        for cat in finalCategory:
+                            concepts.append(cat)
+
+                        if not finalCategory:
+                            for term in category_terms:
+                                w1 = nlp(term)
+                                w2 = nlp(main_sense)
+                                score = w1.similarity(w2)
+                                maxscore = max(score, maxscore)
+                                if maxscore == score:
+                                    concepts.append(term)
+                    except Exception as e:
+                        print(e.message)
+
+            elif 'mainSense' in data and 'categories' not in data:
+                main_sense = data['mainSense']
+                sep = '#'
+                main_sense = main_sense.split(sep, 1)[0]  # mainSense specific preprocessing
+                main_sense = main_sense.replace('_', ' ')
+                concepts.append(main_sense)
+
+            elif 'mainSense' not in data and 'categories' in data:
+                categories = data['categories']
+                if len(categories) > 0:
+                    concepts.append(categories[0].replace('_', ' ')) # append the first one
+
+            else:
+                continue
 
         return concepts
 
@@ -144,6 +175,30 @@ class Helper_FeatureExtraction:
         text = ' '.join([word.lemma_ if word.lemma_ != '-PRON-' else word.text for word in text])
         return text
 
+    def expand_twitterLingo(self, text):
+        with open('data/Test_Set_3802_Pairs.txt', 'r') as f:
+            lines = f.readlines()
+
+        final_string = ''
+        norm_dict = {}
+        for line in lines:
+            line = re.sub(r'\d+', '', line)
+            line = line.strip()  # remove whitespaces
+            split_list = line.split('|')
+            if split_list[0].strip() not in norm_dict:
+                norm_dict[split_list[0].strip()] = split_list[1].strip()
+
+        words = text.split()
+        # final_string = ' '.join(str(norm_dict.get(word, word)) for word in words)
+        for word in words:
+            if word in norm_dict:
+                final_string = re.sub(r'\b' + word + r'\b', str(norm_dict[word]), text)
+        if (final_string != text):
+            print('orig string: ', text)
+            print('words: ', words)
+            print('norm_string: ' , final_string)
+        return final_string
+
     def expand_contractions(self, text, contraction_mapping=CONTRACTION_MAP):
         '''
         Eg: text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
@@ -183,6 +238,38 @@ class Helper_FeatureExtraction:
         special_symbols = re.compile(r"[\u0600-\u06FF\u0B80-\u0BFF\u25A0-\u25FF\u2700-\u27BF]+", re.UNICODE)
         text = special_symbols.sub('', text)
         return text
+
+    def extract_emojis_from_text(self, text):
+        emoji_list = ''.join(c for c in text if c in emoji.UNICODE_EMOJI)
+        return list(set(emoji_list))
+
+    def categories_keywords_from_emojiNet(self, unicode_emoji):
+        with open('data/emojidata/emojis.json') as f:
+            data = json.load(f)
+            for d in data:
+                if unicode_emoji in d['unicode']:
+                    return d['keywords'], d['category']
+
+    def emoji_to_keywords_and_categories(self, text):
+        emoji_list = self.extract_emojis_from_text(text)
+
+        for emo in emoji_list:
+            emoji_decoded = emo.encode('unicode-escape').decode('ASCII')
+            if '000' in emoji_decoded:  # case: \U0001f64f
+                emoji_decoded = emoji_decoded.replace('000', '+')[1:]
+
+            else:  # case: \u2614
+                emoji_decoded = emoji_decoded[1:]
+                emoji_decoded = emoji_decoded[:1] + '+' + emoji_decoded[1:]
+            emoji_decoded = emoji_decoded.upper()
+
+            keywords, categories = self.categories_keywords_from_emojiNet(emoji_decoded)
+
+            meaning = Emojipedia.search(emo)
+            keywords.append(meaning.shortcodes) # TODO: check if redundant or useful
+
+            return keywords, categories
+
 
     def emoji_to_text(self, text):
         text = emoji.demojize(text)
@@ -245,7 +332,7 @@ class Helper_FeatureExtraction:
     def include_indicatorTerms_in_tweets(self, input_dataframe):
         norm_tweets = []
         for _, col in input_dataframe.iterrows():
-            norm_text = self.normalize_tweet(str(col['text']).lower(), nlp, lemmatization=True) #lowercased input, lemmatization gives better results with MultinomialNB only
+            norm_text = self.normalize_tweet(str(col['text']).lower(), nlp, demojize_text= True, special_symbol_removal= True, emoji_removal= False, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True )
             if col['indicatorTerms']:
                 norm_text += ' '.join(col['indicatorTerms'])
             norm_tweets.append(norm_text)
