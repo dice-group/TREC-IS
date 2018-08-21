@@ -1,5 +1,4 @@
 import os.path
-import pickle
 import re
 
 import numpy as np
@@ -18,9 +17,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from textblob import TextBlob
 from sklearn.decomposition import TruncatedSVD, PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import MultiLabelBinarizer
-from collections import defaultdict
 import itertools
 import pickle
 
@@ -122,7 +119,7 @@ class FeatureExtraction:
         :return:
         '''
         # --- loaded saved features if it's exist ? ---
-        features_path = 'features/bow_embedding.pkl'
+        features_path = 'features/bow.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
