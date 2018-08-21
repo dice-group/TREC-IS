@@ -1,4 +1,7 @@
 import itertools as it
+import pickle
+
+
 class Features:
 
     def feature_permutation(self, features):
@@ -56,17 +59,26 @@ class Features:
 def main():
     fe = Features()
 
-    # sample lists
-    A = [[1, 2, 3], ['A', 'B'], [1.5, 2.5, 3.5]]
-    B = [[4, 5, 6, 7], ['C', 'D'], [4.5, 5.5, 6.5]]
-    C = [[8, 8, 8], ['E', 'F'], [7.5, 8.5, 9.5]]
+    embedding_dict = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+    bow_dict = pickle.load(open('features/bow.pkl', 'rb'))
+    boc_dict = pickle.load(open('features/boc_OHE.pkl', 'rb'))
 
-    features = [A, B, C]
+    embedding_feat = []
+    bow_feat = []
+    boc_feat = []
+
+    for key1, key2, key3 in zip(sorted(embedding_dict.keys()), sorted(bow_dict.keys()), sorted(boc_dict.keys())):
+        embedding_feat.append(embedding_dict[key1])
+        bow_feat.append(bow_dict[key2])
+        boc_feat.append(boc_dict[key3])
+
+    features = [embedding_feat, bow_feat, boc_feat]
 
     all_features = fe.get_all_Features(features)
 
-    for k in all_features:
-        print(all_features[k])
+    # iterate features of embedding+bow
+    for elem in all_features[0]:
+        print(elem)
 
 if __name__ == '__main__':
     main()
