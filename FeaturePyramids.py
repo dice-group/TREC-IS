@@ -27,7 +27,7 @@ class Features:
 
         return feature_comb
 
-    def get_all_Features(self, features_list):
+    def features_pyramids(self, features_list):
         featurePyramids = []
 
         for i in range(len(features_list[0])):  # range of dataset size (i: row 0 to len(data))
@@ -54,31 +54,60 @@ class Features:
 
         return all_features
 
+    def get_all_features(self):
+
+        # loading saved features
+        embedding_dict = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+        bow_dict = pickle.load(open('features/bow.pkl', 'rb'))
+        boc_dict = pickle.load(open('features/boc_OHE.pkl', 'rb'))
+
+        embedding_feat = []
+        bow_feat = []
+        boc_feat = []
+
+        # confirm all features have same keys
+        for key1, key2, key3 in zip(sorted(embedding_dict.keys()), sorted(bow_dict.keys()), sorted(boc_dict.keys())):
+            embedding_feat.append(embedding_dict[key1])
+            bow_feat.append(bow_dict[key2])
+            boc_feat.append(boc_dict[key3])
+
+        features = [embedding_feat, bow_feat, boc_feat]
+
+        # get all feature permutation
+        all_features = self.features_pyramids(features)
+
+        embedding_bow = dict.fromkeys(sorted(embedding_dict.keys()))
+        embedding_boc = dict.fromkeys(sorted(embedding_dict.keys()))
+        bow_boc = dict.fromkeys(sorted(embedding_dict.keys()))
+        embedding_bow_boc = dict.fromkeys(sorted(embedding_dict.keys()))
+
+        # saving embedding+bow features
+        for k, elem in zip(embedding_bow, all_features[0]):
+            embedding_bow[k] = elem
+
+        # saving embedding+boc features
+        for k, elem in zip(embedding_boc, all_features[1]):
+            embedding_boc[k] = elem
+
+        # saving bow+boc features
+        for k, elem in zip(bow_boc, all_features[2]):
+            bow_boc[k] = elem
+
+        # saving embedding+bow+boc features
+
+        for k, elem in zip(embedding_bow_boc, all_features[3]):
+            embedding_bow_boc[k] = elem
+
+        return embedding_bow, embedding_boc, bow_boc, embedding_bow_boc
+
 
 #  --- Test Feature Pyramids to generate all possible features ----
 def main():
     fe = Features()
 
-    embedding_dict = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
-    bow_dict = pickle.load(open('features/bow.pkl', 'rb'))
-    boc_dict = pickle.load(open('features/boc_OHE.pkl', 'rb'))
+    # <key, value> representation of features.
+    embedding_bow, embedding_boc, bow_boc, embedding_bow_boc = fe.get_all_features()
 
-    embedding_feat = []
-    bow_feat = []
-    boc_feat = []
-
-    for key1, key2, key3 in zip(sorted(embedding_dict.keys()), sorted(bow_dict.keys()), sorted(boc_dict.keys())):
-        embedding_feat.append(embedding_dict[key1])
-        bow_feat.append(bow_dict[key2])
-        boc_feat.append(boc_dict[key3])
-
-    features = [embedding_feat, bow_feat, boc_feat]
-
-    all_features = fe.get_all_Features(features)
-
-    # iterate features of embedding+bow
-    for elem in all_features[0]:
-        print(elem)
 
 if __name__ == '__main__':
     main()
