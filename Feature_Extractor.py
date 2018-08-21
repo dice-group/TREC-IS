@@ -1,4 +1,6 @@
+import itertools
 import os.path
+import pickle
 import re
 
 import numpy as np
@@ -6,8 +8,8 @@ import pandas as pd
 
 pd.set_option('mode.chained_assignment', None)
 
-
 import spacy
+
 from gensim.models import KeyedVectors
 from nltk import TweetTokenizer
 
@@ -18,13 +20,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from textblob import TextBlob
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MultiLabelBinarizer
-import itertools
-import pickle
 
 from Helper_Feature_Extractor import Helper_FeatureExtraction
 
 from Preprocessing import Preprocessing
 from DeepModel import Model
+
+from FeaturePyramids import Features
 
 class FeatureExtraction:
     def __init__(self):
@@ -366,6 +368,9 @@ In this code, we consider the first representation
 
 def main():
     fe = FeatureExtraction()
+
+    feat_pyramids = Features()
+
     # --- load training data ---
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
@@ -373,10 +378,13 @@ def main():
     data['emb_senti_features'] = np.nan
     data['emb_senti_features'] = data['emb_senti_features'].astype(object)
 
-    emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+    # emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
+    embedding_bow, embedding_boc, bow_boc, embedding_bow_boc = fe.get_all_features()
+
+
 
     for id, row in data.iterrows():
-        data.at[id, 'emb_senti_features'] = emb_senti_features[id]
+        data.at[id, 'emb_senti_features'] = embedding_bow[id]
 
     # -- Ok let's train a simple deep model --
     simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
