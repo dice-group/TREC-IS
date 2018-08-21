@@ -132,7 +132,7 @@ for model in models:
 
 cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
 
-#-----------visualization of models and accuracies---------
+# -----------visualization of models and accuracies---------
 # sns.boxplot(x='model_name', y = 'accuracy', data=cv_df)
 # plt.show()
 
@@ -150,17 +150,12 @@ data.set_index('tweet_id', inplace=True)
 data['boc_features'] = np.nan
 data['boc_features'] = data['boc_features'].astype(object)
 
-boc_features = fe.encode_synsets_from_babelfy()
+# boc_features = fe.encode_synsets_from_babelfy()
+boc_features = fe.create_bag_of_concepts()
+print(fe.norm_df.head(5))
 
 for id, row in data.iterrows():
     data.at[id, 'boc_features'] = boc_features[id]
-
-# boc_embedding = fe.create_bag_of_concepts()
-# print(boc_embedding[:3])
-# print(boc_embedding.shape)
-# print(fe.norm_df.head(5))
-# boc_embedding = fe.encode_synsets_from_babelfy()
-
 
 entries = []
 for model in models:

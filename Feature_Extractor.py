@@ -232,6 +232,8 @@ class FeatureExtraction:
         nlp = spacy.load('en_core_web_lg')
         text_col = self.norm_df['text']
         vect_col = []
+        count = 0
+        zero_list = []
 
         for tweet in text_col:
             tweet = self.hepler_fe.emoji_to_text(tweet)
@@ -247,8 +249,13 @@ class FeatureExtraction:
             # calculate the mean/sum across each word
             average_word_vector = np.sum(word_vector_list, axis=0, keepdims=False)
             # print('avg word vector : ' , average_word_vector.shape, average_word_vector)
+            if(np.sum(word_vector_list) == 0):
+                zero_list.append((tweet, average_word_vector))
+                count += 1
             vect_col.append(average_word_vector)
 
+        print(count)
+        print(zero_list)
         boc_array = np.asanyarray(vect_col)
         self.norm_df['bocEmbedding'] = boc_array
 
