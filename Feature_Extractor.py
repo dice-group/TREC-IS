@@ -25,6 +25,7 @@ from Helper_Feature_Extractor import Helper_FeatureExtraction
 
 from Preprocessing import Preprocessing
 from DeepModel import Model
+from Evaluate_Models import ModelEvaluation
 
 from FeaturePyramids import Features
 
@@ -356,7 +357,8 @@ class FeatureExtraction:
 
 
         for row in bow_table:
-            bow_table[row] = np.append(bow_table[row], boc_table[row])
+            print(row)
+            #bow_table[row] = np.append(bow_table[row], boc_table[row])
 
         # save bow + boc features into disk (type: dic (tweet_id,<bow + boc>)
         file = open(feature_path, 'wb')
@@ -382,22 +384,89 @@ def main():
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
 
-    data['emb_senti_features'] = np.nan
-    data['emb_senti_features'] = data['emb_senti_features'].astype(object)
-
     # emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
-    embedding_bow, embedding_boc, bow_boc, embedding_bow_boc = fe.get_all_features()
+    embedding_dict, bow_dict, boc_dict, embedding_sent_dict, embedding_bow, embedding_boc, bow_boc, embedding_bow_boc = feat_pyramids.get_all_features()
+
+    feature_list = [embedding_dict, bow_dict, boc_dict, embedding_sent_dict, embedding_bow, embedding_boc, bow_boc, embedding_bow_boc]
+
+    i=0
+
+    for feature in feature_list:
+
+        data['feature_set'+str(i)] = np.nan
+        data['feature_set'+str(i)] = data['feature_set'+str(i)].astype(object)
+
+        for id, row in data.iterrows():
+            data.at[id, 'feature_set'+str(i)] = feature[id]
+
+        # print(data['feature_set'+str(i)][:4])
+
+        #---- evaluation ----
+        print(type(data['feature_set'+str(i)].tolist()))
+        modelEval =  ModelEvaluation(X=data['feature_set'+str(i)].tolist(), y=data['categories'].tolist(), feature_name='feature_set'+str(i))
+        modelEval.run_evaluation()
+        i += 1
 
 
-
-    for id, row in data.iterrows():
-        data.at[id, 'emb_senti_features'] = embedding_bow[id]
-
-    # -- Ok let's train a simple deep model --
-    simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
-    simpleModel.simple_DeepModel()
-
-    simpleModel.evaluate_model()
+    # # -- Ok let's train a simple deep model --
+    # simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
+    # simpleModel.simple_DeepModel()
+    #
+    # simpleModel.evaluate_model()
 
 if __name__ == '__main__':
     main()
+
+'''
+tweet_id
+275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
+324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
+214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
+211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
+Name: feature_set0, dtype: object
+tweet_id
+275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
+324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
+214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
+211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
+Name: feature_set1, dtype: object
+tweet_id
+275881650053869568    [0.0018597945309319246, 0.009031574630770613, ...
+324733547615223808    [0.12310581138283105, 0.37673764388702263, 1.4...
+214485545521385473    [7.649298023057523e-05, 0.0032413378735463576,...
+211976521278164993    [0.010843242385900521, 0.5017603793770049, -0....
+Name: feature_set2, dtype: object
+tweet_id
+275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
+324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
+214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
+211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
+
+'''
+
+'''
+tweet_id
+245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
+324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
+396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
+243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
+Name: feature_set0, dtype: object
+tweet_id
+245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
+324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
+396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
+243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
+Name: feature_set1, dtype: object
+tweet_id
+245717721415831552    [0.0002274909072734932, 0.0047515380856050695,...
+324742913483493376    [0.2185952525939142, 0.38690201867757174, 0.50...
+396327926104215552    [0.041551812846072726, 0.09892732262927191, 0....
+243367120228974594    [0.035248173711110234, 0.13064055682206188, 0....
+Name: feature_set2, dtype: object
+tweet_id
+245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
+324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
+396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
+243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
+Name: feature_set3, dtype: object
+'''
