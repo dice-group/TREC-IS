@@ -367,6 +367,68 @@ class FeatureExtraction:
 
         return bow_table  # bow and boc
 
+    # ----- extract bow and sentiment features -----
+    def bow_sentiment_features(self):
+        # load saved features if it's exist ?
+        feature_path = 'features/bow_sentiment.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        self.sentiment_features_from_tweets()
+        bow_dict = self.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method= 'svd', n_components=300, analyzer='word', ngram_range=(1, 1),
+                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
+                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False)
+
+        for _, row in self.norm_df.iterrows():
+            bow_dict[row['tweet_id']] = np.append(bow_dict[row['tweet_id']], row['sentiment'])
+
+        file = open(feature_path, 'wb')
+        pickle.dump(bow_dict, file)
+        file.close()
+
+        return bow_dict  # bow and sentiment
+
+    # ----- extract boc and sentiment features -----
+    def boc_sentiment_features(self):
+        # load saved features if it's exist ?
+        feature_path = 'features/boc_sentiment.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        self.sentiment_features_from_tweets()
+        boc_dict = self.encode_synsets_from_babelfy()
+
+        for _, row in self.norm_df.iterrows():
+            boc_dict[row['tweet_id']] = np.append(boc_dict[row['tweet_id']], row['sentiment'])
+
+        file = open(feature_path, 'wb')
+        pickle.dump(boc_dict, file)
+        file.close()
+
+        return boc_dict  # boc and sentiment
+
+    def sentiment_features(self):
+        feature_path = 'features/sentiment.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        self.sentiment_features_from_tweets()
+
+        sent_dict = {}
+
+        for _, row in self.norm_df.iterrows():
+            sent_dict[row['tweet_id']] = [row['sentiment']]
+
+        file = open(feature_path, 'wb')
+        pickle.dump(sent_dict, file)
+        file.close()
+
+        return sent_dict  # sentiment
+
+
 # ------------- main() for testing the code ------------- #
 '''
 Test embedding features, each tweet is represented as 
@@ -378,16 +440,23 @@ In this code, we consider the first representation
 def main():
     fe = FeatureExtraction()
 
+    print(fe.sentiment_features())
+    # print(fe.boc_sentiment_features())
+    # print(fe.bow_sentiment_features())
+
     feat_pyramids = Features()
 
     # --- load training data ---
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
 
-    # emb_senti_features = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
-    embedding_dict, bow_dict, boc_dict, embedding_sent_dict, embedding_bow, embedding_boc, bow_boc, embedding_bow_boc = feat_pyramids.get_all_features()
+    embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
+    embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
+    bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
 
-    feature_list = [embedding_dict, bow_dict, boc_dict, embedding_sent_dict, embedding_bow, embedding_boc, bow_boc, embedding_bow_boc]
+    feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
+               embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
+               bow_boc_embedding, embedding_sent_bow_boc]
 
     i=0
 
@@ -417,56 +486,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-'''
-tweet_id
-275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
-324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
-214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
-211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
-Name: feature_set0, dtype: object
-tweet_id
-275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
-324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
-214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
-211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
-Name: feature_set1, dtype: object
-tweet_id
-275881650053869568    [0.0018597945309319246, 0.009031574630770613, ...
-324733547615223808    [0.12310581138283105, 0.37673764388702263, 1.4...
-214485545521385473    [7.649298023057523e-05, 0.0032413378735463576,...
-211976521278164993    [0.010843242385900521, 0.5017603793770049, -0....
-Name: feature_set2, dtype: object
-tweet_id
-275881650053869568    [1.1814325153827667, -2.232394981384277, 2.269...
-324733547615223808    [-1.6853297437940324, 0.9653212257793972, 0.08...
-214485545521385473    [-0.009033815935254097, 0.5101128816604614, -0...
-211976521278164993    [0.2734862466653188, 1.8788461685180664, 0.075...
-
-'''
-
-'''
-tweet_id
-245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
-324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
-396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
-243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
-Name: feature_set0, dtype: object
-tweet_id
-245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
-324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
-396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
-243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
-Name: feature_set1, dtype: object
-tweet_id
-245717721415831552    [0.0002274909072734932, 0.0047515380856050695,...
-324742913483493376    [0.2185952525939142, 0.38690201867757174, 0.50...
-396327926104215552    [0.041551812846072726, 0.09892732262927191, 0....
-243367120228974594    [0.035248173711110234, 0.13064055682206188, 0....
-Name: feature_set2, dtype: object
-tweet_id
-245717721415831552    [-1.2367295026779175, 2.53644859790802, -1.403...
-324742913483493376    [0.3872788575562564, 0.7035770389166746, -0.38...
-396327926104215552    [3.671771802008152, 3.4291198030114174, 0.3151...
-243367120228974594    [0.05368505567312241, 0.6777381032705307, 1.68...
-Name: feature_set3, dtype: object
-'''

@@ -57,6 +57,9 @@ class Features:
     def get_all_features(self):
 
         # loading saved features
+        sent_dict = pickle.load(open('features/sentiment.pkl', 'rb'))
+        bow_sent =  pickle.load(open('features/bow_sentiment.pkl', 'rb'))
+        boc_sent = pickle.load(open('features/boc_sentiment.pkl', 'rb'))
         embedding_dict = pickle.load(open('features/embedding_features.pkl', 'rb'))
         embedding_sent_dict = pickle.load(open('features/embedding_sentiment.pkl', 'rb'))
         bow_dict = pickle.load(open('features/bow.pkl', 'rb'))
@@ -65,24 +68,52 @@ class Features:
         # embedding_feat = []
         # bow_feat = []
         # boc_feat = []
-
         embedding_bow = {}
         embedding_boc = {}
+        bow_sent_boc = {}
+        bow_boc_embedding = {}
+        embedding_sent_bow = {}
+        embedding_sent_boc = {}
         bow_boc = {}
-        embedding_bow_boc = {}
+        embedding_sent_bow_boc = {}
+
+        for key in embedding_dict:
+            if key in bow_dict:
+                embedding_bow[key] = np.append(embedding_dict[key], bow_dict[key])
+            else:
+                print(key)
+
+        for key in embedding_dict:
+            if key in boc_dict:
+                embedding_boc[key] = np.append(embedding_dict[key], boc_dict[key])
+            else:
+                print(key)
+
+        for key in embedding_dict:
+            if key in bow_dict:
+                bow_boc_embedding[key] = np.append(embedding_dict[key], bow_dict[key])
+                bow_boc_embedding[key] = np.append(bow_boc_embedding[key], boc_dict[key])
+            else:
+                print(key)
+
+        for key in bow_sent:
+            bow_sent_boc[key] = np.append(bow_sent[key], boc_dict[key])
 
         for key in embedding_sent_dict:
-            embedding_bow[key] = np.append(embedding_sent_dict[key], bow_dict[key])
+            embedding_sent_bow[key] = np.append(embedding_sent_dict[key], bow_dict[key])
 
         for key in embedding_sent_dict:
-            embedding_boc[key] = np.append(embedding_sent_dict[key], boc_dict[key])
+            embedding_sent_bow[key] = np.append(embedding_sent_dict[key], bow_dict[key])
+
+        for key in embedding_sent_dict:
+            embedding_sent_boc[key] = np.append(embedding_sent_dict[key], boc_dict[key])
 
         for key in bow_dict:
             bow_boc[key] = np.append(bow_dict[key], boc_dict[key])
 
         for key in embedding_sent_dict:
-            embedding_bow_boc[key] = np.append(embedding_sent_dict[key], bow_dict[key])
-            embedding_bow_boc[key] = np.append(embedding_bow_boc[key], boc_dict[key])
+            embedding_sent_bow_boc[key] = np.append(embedding_sent_dict[key], bow_dict[key])
+            embedding_sent_bow_boc[key] = np.append(embedding_sent_bow_boc[key], boc_dict[key])
 
         # confirm all features have same keys
         # for key1, key2, key3 in zip(sorted(embedding_sent_dict.keys()), sorted(bow_dict.keys()), sorted(boc_dict.keys())):
@@ -95,18 +126,18 @@ class Features:
         # # get all feature permutation
         # all_features = self.features_pyramids(features)
         #
-        # embedding_bow = dict.fromkeys(sorted(embedding_sent_dict.keys()))
-        # embedding_boc = dict.fromkeys(sorted(embedding_sent_dict.keys()))
+        # embedding_sent_bow = dict.fromkeys(sorted(embedding_sent_dict.keys()))
+        # embedding_sent_boc = dict.fromkeys(sorted(embedding_sent_dict.keys()))
         # bow_boc = dict.fromkeys(sorted(embedding_sent_dict.keys()))
-        # embedding_bow_boc = dict.fromkeys(sorted(embedding_sent_dict.keys()))
+        # embedding_sent_bow_boc = dict.fromkeys(sorted(embedding_sent_dict.keys()))
         #
         # # saving embedding+bow features
-        # for k, elem in zip(embedding_bow, all_features[0]):
-        #     embedding_bow[k] = elem
+        # for k, elem in zip(embedding_sent_bow, all_features[0]):
+        #     embedding_sent_bow[k] = elem
         #
         # # saving embedding+boc features
-        # for k, elem in zip(embedding_boc, all_features[1]):
-        #     embedding_boc[k] = elem
+        # for k, elem in zip(embedding_sent_boc, all_features[1]):
+        #     embedding_sent_boc[k] = elem
         #
         # # saving bow+boc features
         # for k, elem in zip(bow_boc, all_features[2]):
@@ -114,11 +145,13 @@ class Features:
         #
         # # saving embedding+bow+boc features
         #
-        # for k, elem in zip(embedding_bow_boc, all_features[3]):
-        #     embedding_bow_boc[k] = elem
+        # for k, elem in zip(embedding_sent_bow_boc, all_features[3]):
+        #     embedding_sent_bow_boc[k] = elem
 
-        return embedding_dict, bow_dict, boc_dict, embedding_sent_dict, embedding_bow, embedding_boc, bow_boc, embedding_bow_boc
-        # return embedding_bow, embedding_boc, bow_boc, embedding_bow_boc
+        return embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
+               embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,  \
+               bow_boc_embedding, embedding_sent_bow_boc
+
 
 
 #  --- Test Feature Pyramids to generate all possible features ----
