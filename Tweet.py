@@ -1,6 +1,7 @@
 class Tweet:
-    def __init__(self, id=None, text=None, metadata=None, priority=None, indicatorTerms=None, categories=None):
+    def __init__(self, id=None, event_type=None, text=None, metadata=None, priority=None, indicatorTerms=None, categories=None):
         self.id = id
+        self.event_type=event_type
         self.text = text
         self.metadata = metadata
         self.priority = priority
