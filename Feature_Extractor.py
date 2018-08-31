@@ -9,8 +9,8 @@ from dateutil import parser
 import time
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
 from ast import literal_eval
-
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -38,7 +38,7 @@ from FeaturePyramids import Features
 class FeatureExtraction:
     def __init__(self, df = None):
         self.tweetsPrp = preprocessing()
-        if df.empty:
+        if df is None:
             self.df = self.tweetsPrp.load_input_feature_extraction()
         else:
             self.df = df
@@ -69,8 +69,9 @@ class FeatureExtraction:
 
     def create_dataframe_for_normalized_tweets(self):
         self.df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
-        le = preprocessing.LabelEncoder()  # replace categorical data in 'categories' with numerical value
-        self.df['categories'] = le.fit_transform(self.df['categories'])
+        le = LabelEncoder()  # replace categorical data in 'categories' with numerical value
+
+        self.df['categories'] = le.fit_transform(self.df['categories'].astype(str))
         normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
         new_col = np.asanyarray(normalized_tweets)
         self.df['norm_tweets'] = new_col
@@ -460,8 +461,13 @@ class FeatureExtraction:
 
         for _, row in self.norm_df.iterrows():
             print(row['metadata'])
-            metadata = literal_eval(row['metadata'])
+            if isinstance(row['metadata'],str):
+                metadata = literal_eval(row['metadata'])
+            else:
+                metadata = row['metadata']
+
             date = parser.parse(metadata.get('created_at'))
+
             timestamp = int(time.mktime(date.timetuple()))
             datetime.append(timestamp)
 
@@ -540,17 +546,18 @@ def main():
     fe.bow_sentiment_features()
     fe.boc_sentiment_features()
 
-    print(fe.extract_datetime_feature())
+    fe.extract_datetime_feature()
 
-    print(fe.sentiment_features())
-    print(fe.boc_sentiment_features())
-    print(fe.bow_sentiment_features())
+    fe.sentiment_features()
+    fe.boc_sentiment_features()
+    fe.bow_sentiment_features()
 
     feat_pyramids = Features()
 
     # --- load training data ---
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
+
 
     # embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
     # embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
@@ -582,15 +589,19 @@ def main():
         data['feature_set'+str(i)] = data['feature_set'+str(i)].astype(object)
 
         for id, row in data.iterrows():
-            data.at[id, 'feature_set'+str(i)] = feature[id]
+            if id in feature:
+                data.at[id, 'feature_set'+str(i)] = feature[id]
+            elif str(id) in feature:
+                data.at[id, 'feature_set' + str(i)] = feature[str(id)]
+
 
         # print(data['feature_set'+str(i)][:4])
 
-        #---- evaluation ----
-        print(type(data['feature_set'+str(i)].tolist()))
-        modelEval =  ModelEvaluation(X=data['feature_set'+str(i)].tolist(), y=data['categories'].tolist(), feature_name='feature_set'+str(i))
-        modelEval.run_evaluation()
-        i += 1
+        # #---- evaluation ----
+        # #print(type(data['feature_set'+str(i)].tolist()))
+        # modelEval =  ModelEvaluation(X=data['feature_set'+str(i)].tolist(), y=data['categories'].tolist(), feature_name='feature_set'+str(i))
+        # modelEval.run_evaluation()
+        # i += 1
 
 
     # # -- Ok let's train a simple deep model --

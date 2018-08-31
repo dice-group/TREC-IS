@@ -146,8 +146,7 @@ class preprocessing:
                                  tweet.metadata, tweet.priority, tweet.event_type])
         csv_file.close()
 
-    def load_training_data(self, trec_data_path='data/TREC-training_data.pkl'):
-        print(trec_data_path)
+    def load_training_data(self, trec_data_path='/home/hzahera/PycharmProjects/Feature Generation/TREC-IS/data/TREC-training_data.pkl'):
         if (os.path.exists(trec_data_path)):
             file = open(trec_data_path, 'rb')
             trainingData = pickle.load(file)
@@ -157,13 +156,12 @@ class preprocessing:
 
     def load_input_feature_extraction(self):
         data = self.load_training_data()
-        print(data)
+
         tweet_list = []
         for _, tweet in data.items():
-            print (tweet)
             # if tweet.metadata is not None and tweet.metadata.get('entities.hashtags') is not None:
             tweet_list.append(
-                {'tweet_id': tweet.id, 'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms,
+                {'tweet_id': str(tweet.id), 'categories': tweet.categories, 'indicatorTerms': tweet.indicatorTerms,
                  'text': tweet.text, 'metadata': tweet.metadata, 'event_type': tweet.event_type})
             # else:
             #     tweet_list.append(
@@ -184,14 +182,18 @@ def main():
     tweetsPrp.access_token = access_token
     tweetsPrp.access_token_secret = access_token_secret
 
-    file = open('/home/rricha/TREC-IS/data/TREC-training_data.pkl','rb')
+    file = open('data/TREC-training_data.pkl','rb')
 
     # training_data=pickle.load(file)
     # for key in training_data:
     #     print(key, training_data[key].event_type)
     # file.close()
 
-    print(tweetsPrp.load_input_feature_extraction().head(5))
+    df=tweetsPrp.load_input_feature_extraction()
+
+    for id, row in df.iterrows():
+        print (row['tweet_id'], type(row['tweet_id']))
+
     # event_paths= ['data/costaRicaEarthquake2012-data.pkl', 'data/fireColorado2012-data.pkl', 'data/floodColorado2013-data.pkl',
     #               'data/laAirportShooting2013-data.pkl', 'data/typhoonPablo2012-data.pkl', 'data/westTexasExplosion2013-data.pkl' ]
     #
