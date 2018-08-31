@@ -5,6 +5,12 @@ import re
 
 import numpy as np
 import pandas as pd
+from dateutil import parser
+import time
+from datetime import datetime
+from sklearn.preprocessing import MinMaxScaler
+from ast import literal_eval
+
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -19,20 +25,23 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from textblob import TextBlob
 from sklearn.decomposition import TruncatedSVD, PCA
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 
 from Helper_Feature_Extractor import Helper_FeatureExtraction
 
-from Preprocessing import Preprocessing
+from preprocessing import preprocessing
 from DeepModel import Model
 from Evaluate_Models import ModelEvaluation
 
 from FeaturePyramids import Features
 
 class FeatureExtraction:
-    def __init__(self):
-        self.tweetsPrp = Preprocessing()
-        self.df = self.tweetsPrp.load_input_feature_extraction()
+    def __init__(self, df = None):
+        self.tweetsPrp = preprocessing()
+        if df.empty:
+            self.df = self.tweetsPrp.load_input_feature_extraction()
+        else:
+            self.df = df
         self.nlp = spacy.load('en')
         self.hepler_fe = Helper_FeatureExtraction()
         self.norm_df = self.create_dataframe_for_normalized_tweets()
@@ -87,8 +96,10 @@ class FeatureExtraction:
                              preprocessor=None, tokenizer=None, stop_words=None,
                      max_df=1.0, min_df=1,  max_features=None, vocabulary=None ):
 
-        count_vec = CountVectorizer(analyzer=analyzer, ngram_range=ngram_range, preprocessor=preprocessor, tokenizer=tokenizer, stop_words=stop_words,
-                     max_df=max_df, min_df=min_df,  max_features=max_features, vocabulary=vocabulary )
+        # count_vec = CountVectorizer(analyzer=analyzer, ngram_range=ngram_range, preprocessor=preprocessor, tokenizer=tokenizer, stop_words=stop_words,
+        #              max_df=max_df, min_df=min_df,  max_features=max_features, vocabulary=vocabulary )
+
+        count_vec = CountVectorizer(analyzer='word', ngram_range=(1, 1))
 
         feature_matrix = count_vec.fit_transform(self.norm_df['norm_tweets'])
 
@@ -97,11 +108,13 @@ class FeatureExtraction:
 
         return feature_matrix.toarray()
 
-    def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', ngram_range=(1, 1),
-                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
-                     max_df=1.0, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
+    def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, method='pca', n_components=300,
+                     analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                     stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                     sublinear_tf=False, name = 'default'):
         '''
 
+        :param name: extension name to be saved for the feature
         :param mode: {'countVec', 'tfidf'}
         :param norm: used to normalize term vectors {'l1', 'l2', None}
         :param dimensionality_reduction: {'true', 'false'}
@@ -122,7 +135,9 @@ class FeatureExtraction:
         :return:
         '''
         # --- loaded saved features if it's exist ? ---
-        features_path = 'features/bow.pkl'
+
+        print(name)
+        features_path = 'features/bow-'+ str(name) +'.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
@@ -157,9 +172,10 @@ class FeatureExtraction:
             lambda tweet: TextBlob(tweet).polarity)
         return self.norm_df
 
-    def word2vec_feature_from_tweets(self, glove_input_file, embedd_dim):
+
+    def word2vec_feature_from_tweets(self, glove_input_file, embedd_dim, name= 'default'):
         # --- loaded saved features if it's exist ? ---
-        features_path = 'features/embedding_features.pkl'
+        features_path = 'features/embedding_features-'+ name +'.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
@@ -200,16 +216,15 @@ class FeatureExtraction:
         return embedd_table
 
     # ----- extract embedding and sentiment features -----
-    def embedding_sentiment_features(self):
+    def embedding_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/embedding_sentiment.pkl'
+        feature_path = 'features/embedding_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
         self.sentiment_features_from_tweets()
-        embedding = self.word2vec_feature_from_tweets(glove_input_file='embeddings/glove.840B.300d.txt',
-                                                      embedd_dim=300)
+        embedding = self.word2vec_feature_from_tweets(glove_input_file='embeddings/glove.840B.300d.txt', embedd_dim=300, name=name)
         for _, row in self.norm_df.iterrows():
             embedding[row['tweet_id']] = np.append(embedding[row['tweet_id']], row['sentiment'])
 
@@ -221,13 +236,14 @@ class FeatureExtraction:
         return embedding  # embedding and sentiment
 
     # ------ Bag of concepts features ----------
-    def create_bag_of_concepts(self):
+    def create_bag_of_concepts(self, name= 'default'):
         '''
         For each tweet, extracts concepts from Babelnet and creates feature vectors of dimension (300, )
+        :param name:
         :return:
         '''
 
-        feature_path = 'features/boc_wordEmbeddings.pkl'
+        feature_path = 'features/boc_wordEmbeddings-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -276,14 +292,15 @@ class FeatureExtraction:
 
         return embed_table
 
-    def encode_synsets_from_babelfy(self):
+    def encode_synsets_from_babelfy(self, name= 'default'):
         '''
         Uses one-hot encoding to create feature_vectors from the synsets returned by Babelfy
+        :param name:
         :param:
         :return:
         '''
 
-        feature_path = 'features/boc_OHE.pkl'
+        feature_path = 'features/boc_OHE-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -334,23 +351,26 @@ class FeatureExtraction:
         return embed_table
 
     # ----- extract bow and boc features -----
-    def bow_boc_features(self, mode='countVec', norm='l2', dimensionality_reduction=True,n_components=300, analyzer='word', ngram_range=(1, 1),
-                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
-                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False):
+    def bow_boc_features(self, mode='countVec', norm='l2', dimensionality_reduction=True, n_components=300,
+                         analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                         stop_words=None, max_df=0.98, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                         sublinear_tf=False, name='default'):
 
         # load saved features if it's exist ?
-        feature_path = 'features/boc-bow.pkl'
+        feature_path = 'features/boc-bow-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
-        boc_table = self.encode_synsets_from_babelfy()   # --- one-hot encoders ----
+        boc_table = self.encode_synsets_from_babelfy()  # --- one-hot encoders ----
 
         #boc_table = self.create_bag_of_concepts()
 
-        bow_table = self.bow_features(mode=mode, norm=norm, dimensionality_reduction=dimensionality_reduction,n_components=n_components, analyzer=analyzer, ngram_range=ngram_range,
-                     use_idf=use_idf, preprocessor=preprocessor, tokenizer=tokenizer, stop_words=stop_words,
-                     max_df=max_df, min_df=min_df,  max_features=max_features, vocabulary=vocabulary, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf)
+        bow_table = self.bow_features(mode=mode, norm=norm, dimensionality_reduction=dimensionality_reduction,
+                                      n_components=n_components, analyzer=analyzer, ngram_range=ngram_range,
+                                      use_idf=use_idf, preprocessor=preprocessor, tokenizer=tokenizer,
+                                      stop_words=stop_words, max_df=max_df, min_df=min_df, max_features=max_features,
+                                      vocabulary=vocabulary, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf)
 
         for _, row in self.norm_df.iterrows():
             bow_table[row['tweet_id']] = np.append(bow_table[row['tweet_id']], boc_table[row['tweet_id']])
@@ -368,17 +388,18 @@ class FeatureExtraction:
         return bow_table  # bow and boc
 
     # ----- extract bow and sentiment features -----
-    def bow_sentiment_features(self):
+    def bow_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/bow_sentiment.pkl'
+        feature_path = 'features/bow_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
         self.sentiment_features_from_tweets()
-        bow_dict = self.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method= 'svd', n_components=300, analyzer='word', ngram_range=(1, 1),
-                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
-                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False)
+        bow_dict = self.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method='svd',
+                                     n_components=300, analyzer='word', ngram_range=(1, 1), use_idf=True,
+                                     preprocessor=None, tokenizer=None, stop_words=None, max_df=0.98, min_df=1,
+                                     max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False, name=name)
 
         for _, row in self.norm_df.iterrows():
             bow_dict[row['tweet_id']] = np.append(bow_dict[row['tweet_id']], row['sentiment'])
@@ -390,15 +411,15 @@ class FeatureExtraction:
         return bow_dict  # bow and sentiment
 
     # ----- extract boc and sentiment features -----
-    def boc_sentiment_features(self):
+    def boc_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/boc_sentiment.pkl'
+        feature_path = 'features/boc_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
         self.sentiment_features_from_tweets()
-        boc_dict = self.encode_synsets_from_babelfy()
+        boc_dict = self.encode_synsets_from_babelfy(name=name)
 
         for _, row in self.norm_df.iterrows():
             boc_dict[row['tweet_id']] = np.append(boc_dict[row['tweet_id']], row['sentiment'])
@@ -409,8 +430,8 @@ class FeatureExtraction:
 
         return boc_dict  # boc and sentiment
 
-    def sentiment_features(self):
-        feature_path = 'features/sentiment.pkl'
+    def sentiment_features(self, name='default'):
+        feature_path = 'features/sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -428,6 +449,70 @@ class FeatureExtraction:
 
         return sent_dict  # sentiment
 
+    def extract_datetime_feature(self, name='default'):
+        feature_path = 'features/datetime-'+ name +'.pkl'
+        if (os.path.exists(feature_path)):
+            file = open(feature_path, 'rb')
+            return pickle.load(file)
+
+        datetime = []
+        datetime_dict = {}
+
+        for _, row in self.norm_df.iterrows():
+            print(row['metadata'])
+            metadata = literal_eval(row['metadata'])
+            date = parser.parse(metadata.get('created_at'))
+            timestamp = int(time.mktime(date.timetuple()))
+            datetime.append(timestamp)
+
+        self.norm_df['timestamp'] = datetime
+        self.norm_df = self.norm_df.sort_values(by=['timestamp'])
+
+        val = 0
+        for i, row in self.norm_df.iterrows():
+            self.norm_df.loc[i, 'timestamp'] = val
+            val += 1
+
+        x = self.norm_df['timestamp'].values.astype(float)
+        scaler = MinMaxScaler()
+        x_scaled = scaler.fit_transform(x.reshape(-1,1))
+        self.norm_df['timestamp'] = x_scaled
+
+        for _, row in self.norm_df.iterrows():
+            datetime_dict[row['tweet_id']] = [row['timestamp']]
+
+        file = open(feature_path, 'wb')
+        pickle.dump(datetime_dict, file)
+        file.close()
+
+        # return datetime_dict # datetime
+        return datetime_dict
+
+    def encode_event_type(self):
+        event_map = {'costaRicaEarthquake2012': 'earthquake', 'fireColorado2012': 'fire', 'floodColorado2013': 'flood',
+                     'typhoonPablo2012' : 'typhoon' , 'laAirportShooting2013' : 'shooting', 'westTexasExplosion2013': 'bombing',
+                     'guatemalaEarthquake2012' : 'earthquake', 'italyEarthquakes2012' : 'earthquake' , 'philipinnesFloods2012' : 'flood',
+                     'albertaFloods2013' : 'flood', 'australiaBushfire2013' : 'fire', 'bostonBombings2013' : 'bombing',
+                     'manilaFloods2013' : 'flood', 'queenslandFloods2013' : 'flood', 'typhoonYolanda2013' : 'typhoon',
+                     'joplinTornado2011': 'typhoon' , 'chileEarthquake2014' : 'earthquake', 'typhoonHagupit2014': 'typhoon',
+                     'nepalEarthquake2015' : 'earthquake', 'flSchoolShooting2018' : 'shooting', 'parisAttacks2015' : 'bombing'
+                     }
+
+        type2num = {'earthquake': 0, 'fire' : 1, 'flood' : 2, 'typhoon': 3, 'shooting': 4, 'bombing' : 5 }
+
+        for _, row in self.norm_df.iterrows():
+            if row['event_type'] in event_map:
+                row['event_type'] = type2num[event_map[row['event_type']]]
+                print(row['event_type'])
+
+        encoder = OneHotEncoder()
+        encoded_event = encoder.fit_transform(self.norm_df['event_type'].tolist())
+        print(encoded_event)
+
+        self.norm_df['event_type'] = encoded_event
+
+        return self.norm_df['event_type']
+
 
 # ------------- main() for testing the code ------------- #
 '''
@@ -439,10 +524,27 @@ In this code, we consider the first representation
 
 def main():
     fe = FeatureExtraction()
+    fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=False, method='svd', n_components=300,
+                    analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                    stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                    sublinear_tf=False)
+
+    fe.encode_synsets_from_babelfy()
+
+    print('bow boc - DONE')
+
+    fe.embedding_sentiment_features()
+
+    print('embedding DONE')
+
+    fe.bow_sentiment_features()
+    fe.boc_sentiment_features()
+
+    print(fe.extract_datetime_feature())
 
     print(fe.sentiment_features())
-    # print(fe.boc_sentiment_features())
-    # print(fe.bow_sentiment_features())
+    print(fe.boc_sentiment_features())
+    print(fe.bow_sentiment_features())
 
     feat_pyramids = Features()
 
@@ -450,13 +552,27 @@ def main():
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
 
+    # embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
+    # embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
+    # bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
+    #
+    # feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
+    #            embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
+    #            bow_boc_embedding, embedding_sent_bow_boc]
+
     embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
     embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
-    bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
+    bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+    bow_sent_time, boc_sent_time, bow_boc_time, \
+    embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+    embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time = feat_pyramids.get_all_features()
 
     feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
-               embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
-               bow_boc_embedding, embedding_sent_bow_boc]
+    embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
+    bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date,
+    bow_sent_time, boc_sent_time, bow_boc_time,
+    embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time,
+    embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
 
     i=0
 

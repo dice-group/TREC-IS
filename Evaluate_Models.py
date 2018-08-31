@@ -1,5 +1,4 @@
 
-from markdown2 import Markdown
 from sklearn.preprocessing import scale, normalize
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
@@ -14,8 +13,8 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import pandas as pd
-import matplotlib as plt
-import seaborn as sns
+from sklearn.externals import joblib
+
 
 from sklearn.metrics import classification_report, accuracy_score, make_scorer
 # Variables for average classification report
@@ -45,9 +44,9 @@ class ModelEvaluation:
         return accuracy_score(y_true, y_pred)  # return accuracy score
 
 
-    def run_evaluation(self):
+    def run_evaluation(self, name='default'):
 
-        with open('evaluation/performance_report.md', 'a') as f:
+        with open('evaluation/performance_report_'+ name +'.md', 'a') as f:
 
             f.write('------' + self.feature_name + '--------')
             f.write('\n')
@@ -57,14 +56,14 @@ class ModelEvaluation:
                      "Naive Bayes", "QDA"]
 
             models = [
-                KNeighborsClassifier(3),
+                KNeighborsClassifier(n_neighbors=5, weights='distance'),
                 SVC(kernel="linear", C=0.025),
                 SVC(gamma=2, C=1),
-                LinearSVC(random_state=42),
+                LinearSVC(random_state=42, C= 0.1, dual= True, loss='squared_hinge', penalty='l2', tol=0.0001),
                 LogisticRegression(random_state=42, solver='newton-cg'),
                 GaussianProcessClassifier(1.0 * RBF(1.0)),
-                DecisionTreeClassifier(max_depth=5, random_state=42),
-                RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+                DecisionTreeClassifier(max_depth=7, random_state=42, criterion='gini', min_samples_leaf=2, min_samples_split=12),
+                RandomForestClassifier(max_depth=5, n_estimators=10),
                 MLPClassifier(alpha=1),
                 AdaBoostClassifier(),
                 GaussianNB(),
@@ -80,23 +79,17 @@ class ModelEvaluation:
                 print(name)
                 # f.write(name)
                 # f.write(classification_report(originalclass, predictedclass))
-
+                joblib.dump(model, 'models/' + self.feature_name + '-' + model.__class__.__name__+ '-'+ name +'.pkl')
                 for fold_idx, accuracy in enumerate(scores):
                     entries.append((name, fold_idx, accuracy))
 
             cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
-            mean_acc = cv_df.groupby('model_name').accuracy.mean()
+            mean_acc = cv_df.groupby(['model_name'], as_index=False, sort=False).accuracy.mean()
             f.write(str(mean_acc))
             f.write('\n\n')
             print(mean_acc)
-
             #-----------visualization of models and accuracies---------
             # sns.barplot(x='model_name', y = 'accuracy', data=cv_df)
             # plt.show()
-
-
-
-
-
 
 
