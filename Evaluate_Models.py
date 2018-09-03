@@ -2,6 +2,7 @@
 from sklearn.preprocessing import scale, normalize
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
+from sklearn.cross_validation import StratifiedKFold
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC, SVC
 from sklearn.neural_network import MLPClassifier
@@ -14,6 +15,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import pandas as pd
 from sklearn.externals import joblib
+from sklearn.ensemble import GradientBoostingClassifier
+from xgboost import XGBClassifier
+import numpy as np
 
 
 from sklearn.metrics import classification_report, accuracy_score, make_scorer
@@ -24,16 +28,17 @@ predictedclass = []
 class ModelEvaluation:
 
 
-    def __init__(self,  X, y, feature_name):
+    def __init__(self, X, y, feature_name):
         '''
         :param X: training features
         :param y: categories
         '''
 
         # Scale and normalize training features
-        self.X = scale(X)
-        self.X = normalize(X, norm='l2')
-        # self.X = X
+
+        #self.X = scale(X)
+        #self.X = normalize(X, norm='l2')
+        self.X = X
         self.y = y
         self.feature_name = feature_name
 
@@ -52,8 +57,8 @@ class ModelEvaluation:
             f.write('\n')
 
             names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Linear SVM (squared loss)",  "Logistic Regression",
-                     "Gaussian Process", "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-                     "Naive Bayes", "QDA"]
+                    "Gaussian Process", "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
+                     "Naive Bayes", "XG-Boost", "Gradient Boost"]
 
             models = [
                 KNeighborsClassifier(n_neighbors=5, weights='distance'),
@@ -61,25 +66,31 @@ class ModelEvaluation:
                 SVC(gamma=2, C=1),
                 LinearSVC(random_state=42, C= 0.1, dual= True, loss='squared_hinge', penalty='l2', tol=0.0001),
                 LogisticRegression(random_state=42, solver='newton-cg'),
-                GaussianProcessClassifier(1.0 * RBF(1.0)),
+                GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs= -1, random_state=42, warm_start=True, multi_class="one_vs_rest"),
                 DecisionTreeClassifier(max_depth=7, random_state=42, criterion='gini', min_samples_leaf=2, min_samples_split=12),
                 RandomForestClassifier(max_depth=5, n_estimators=10),
                 MLPClassifier(alpha=1),
-                AdaBoostClassifier(),
+                #AdaBoostClassifier(),
                 GaussianNB(),
+                XGBClassifier(random_state=42, learning_rate= 0.01, n_estimators= 100, subsample=0.7500000000000001),
+                GradientBoostingClassifier(learning_rate=0.01, max_depth=10, max_features=0.35000000000000003,
+                                           min_samples_leaf=10, min_samples_split=6, n_estimators=100,
+                                           subsample=0.7500000000000001)
+
                 # QuadraticDiscriminantAnalysis()
                  ]
 
-            kf = 2
+            #kf = 10
+            kf = StratifiedKFold(self.y, n_folds=10, shuffle=True, random_state=42)
 
             entries = []
             for name, model in zip(names, models):
-                scores = cross_val_score(model, self.X, self.y, scoring=make_scorer(self.classification_report_with_accuracy_score), cv=kf)
+                scores = cross_val_score(model, self.X, self.y, scoring=make_scorer(self.classification_report_with_accuracy_score), cv=kf, verbose=1, n_jobs=-1)
                 # Average values in classification report for all folds in a K-fold Cross-validation
                 print(name)
                 # f.write(name)
                 # f.write(classification_report(originalclass, predictedclass))
-                joblib.dump(model, 'models/' + self.feature_name + '-' + model.__class__.__name__+ '-'+ name +'.pkl')
+                joblib.dump(model, 'models/final/' + self.feature_name + '-' + model.__class__.__name__+ '-'+ name +'.pkl')
                 for fold_idx, accuracy in enumerate(scores):
                     entries.append((name, fold_idx, accuracy))
 
