@@ -121,12 +121,10 @@ class FeatureExtraction:
         :param dimensionality_reduction: {'true', 'false'}
         :param method: {'pca', 'svd'}
         :param n_components: int, reduced dimesion = 300 by default
-        :param analyzer: {'word', 'char'} or callable for tf-idf , {‘word’, ‘char’, ‘char_wb’} or callable for countVec
         :param ngram_range: tuple(min_n, max_n)
         :param use_idf: boolean, default = True
         :param preprocessor: callable or None (default)
         :param tokenizer: callable or None (default)
-        :param stop_words: string {‘english’}, list, or None (default)
         :param max_df: float in range [0.0, 1.0] or int, default=1.0
         :param min_df: float in range [0.0, 1.0] or int, default=1
         :param max_features: int or None, default=None
