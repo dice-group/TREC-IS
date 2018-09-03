@@ -40,6 +40,7 @@ class FeatureExtraction:
         self.tweetsPrp = preprocessing()
         if df is None:
             self.df = self.tweetsPrp.load_input_feature_extraction()
+            #self.df = self.tweetsPrp.load_test_data()
         else:
             self.df = df
         self.nlp = spacy.load('en')
@@ -138,7 +139,7 @@ class FeatureExtraction:
         # --- loaded saved features if it's exist ? ---
 
         print(name)
-        features_path = 'features/bow-'+ str(name) +'.pkl'
+        features_path = 'features/bow-'+ name +'.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
@@ -397,13 +398,16 @@ class FeatureExtraction:
             return pickle.load(file)
 
         self.sentiment_features_from_tweets()
-        bow_dict = self.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method='svd',
-                                     n_components=300, analyzer='word', ngram_range=(1, 1), use_idf=True,
-                                     preprocessor=None, tokenizer=None, stop_words=None, max_df=0.98, min_df=1,
-                                     max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False, name=name)
+        bow_dict = self.bow_features(mode='countVec', norm='l2', dimensionality_reduction=False, method='pca', n_components=300,
+                     analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                     stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                     sublinear_tf=False, name = 'default')
 
         for _, row in self.norm_df.iterrows():
-            bow_dict[row['tweet_id']] = np.append(bow_dict[row['tweet_id']], row['sentiment'])
+            if row['tweet_id'] in bow_dict:
+                bow_dict[row['tweet_id']] = np.append(bow_dict[row['tweet_id']], row['sentiment'])
+            else:
+                print(row['tweet_id'])
 
         file = open(feature_path, 'wb')
         pickle.dump(bow_dict, file)
@@ -451,7 +455,7 @@ class FeatureExtraction:
         return sent_dict  # sentiment
 
     def extract_datetime_feature(self, name='default'):
-        feature_path = 'features/datetime-'+ name +'.pkl'
+        feature_path = 'features/datetimeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -460,8 +464,7 @@ class FeatureExtraction:
         datetime_dict = {}
 
         for _, row in self.norm_df.iterrows():
-            print(row['metadata'])
-            if isinstance(row['metadata'],str):
+            if isinstance(row['metadata'], str):
                 metadata = literal_eval(row['metadata'])
             else:
                 metadata = row['metadata']
@@ -472,16 +475,27 @@ class FeatureExtraction:
             datetime.append(timestamp)
 
         self.norm_df['timestamp'] = datetime
-        self.norm_df = self.norm_df.sort_values(by=['timestamp'])
+        self.norm_df = self.norm_df.sort_values(by=['event_type', 'timestamp'])
+
+        print(self.norm_df['timestamp'].head(50))
 
         val = 0
+        event = self.norm_df.at[0, 'event_type']
+        print(event)
         for i, row in self.norm_df.iterrows():
-            self.norm_df.loc[i, 'timestamp'] = val
-            val += 1
+            if event == row['event_type']:
+                self.norm_df.loc[i, 'timestamp'] = val
+                val += 1
+            else:
+                event = row['event_type']
+                print(event)
+                val = 0
+                self.norm_df.loc[i, 'timestamp'] = val
+                val += 1
 
         x = self.norm_df['timestamp'].values.astype(float)
         scaler = MinMaxScaler()
-        x_scaled = scaler.fit_transform(x.reshape(-1,1))
+        x_scaled = scaler.fit_transform(x.reshape(-1, 1))
         self.norm_df['timestamp'] = x_scaled
 
         for _, row in self.norm_df.iterrows():
@@ -495,6 +509,9 @@ class FeatureExtraction:
         return datetime_dict
 
     def encode_event_type(self):
+
+        event_dict = {}
+
         event_map = {'costaRicaEarthquake2012': 'earthquake', 'fireColorado2012': 'fire', 'floodColorado2013': 'flood',
                      'typhoonPablo2012' : 'typhoon' , 'laAirportShooting2013' : 'shooting', 'westTexasExplosion2013': 'bombing',
                      'guatemalaEarthquake2012' : 'earthquake', 'italyEarthquakes2012' : 'earthquake' , 'philipinnesFloods2012' : 'flood',
@@ -504,20 +521,35 @@ class FeatureExtraction:
                      'nepalEarthquake2015' : 'earthquake', 'flSchoolShooting2018' : 'shooting', 'parisAttacks2015' : 'bombing'
                      }
 
-        type2num = {'earthquake': 0, 'fire' : 1, 'flood' : 2, 'typhoon': 3, 'shooting': 4, 'bombing' : 5 }
+        #type2num = {'earthquake': 0, 'fire' : 1, 'flood' : 2, 'typhoon': 3, 'shooting': 4, 'bombing' : 5 }
+
+        event2num = []
 
         for _, row in self.norm_df.iterrows():
             if row['event_type'] in event_map:
-                row['event_type'] = type2num[event_map[row['event_type']]]
-                print(row['event_type'])
+               event2num.append(event_map[row['event_type']])
 
-        encoder = OneHotEncoder()
-        encoded_event = encoder.fit_transform(self.norm_df['event_type'].tolist())
-        print(encoded_event)
+        self.norm_df['encoded_event'] = np.array(event2num)
+        print(self.norm_df['event_type'].head(5))
+        print(self.norm_df['encoded_event'].head(5))
 
-        self.norm_df['event_type'] = encoded_event
+        le = LabelEncoder()  # replace categorical data with numerical value
 
-        return self.norm_df['event_type']
+        self.norm_df['encoded_event'] = le.fit_transform(self.norm_df['encoded_event'].astype(str))
+        print(self.norm_df['encoded_event'].head(5))
+
+        # self.norm_df['encoded_event'] = pd.get_dummies(self.norm_df['encoded_event'])
+        # print(self.norm_df.head(5))
+        encoder = OneHotEncoder(sparse=True)
+        self.norm_df['encoded_event'] = encoder.fit_transform(self.norm_df.encoded_event.values.reshape(-1,1))
+        print(self.norm_df['encoded_event'].head(5))
+
+        print(self.norm_df['encoded_event'].shape)
+
+        for _, row in self.norm_df.iterrows():
+            event_dict[row['tweet_id']] = row['encoded_event']
+
+        return event_dict
 
 
 # ------------- main() for testing the code ------------- #
@@ -530,6 +562,7 @@ In this code, we consider the first representation
 
 def main():
     fe = FeatureExtraction()
+    # event_dict = fe.encode_event_type()
     fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=False, method='svd', n_components=300,
                     analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
                     stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
@@ -542,15 +575,16 @@ def main():
     fe.embedding_sentiment_features()
 
     print('embedding DONE')
-
     fe.bow_sentiment_features()
-    fe.boc_sentiment_features()
 
+
+    print('bow_sent done')
+    fe.boc_sentiment_features()
+    print('boc_sent done')
     fe.extract_datetime_feature()
-
+    print('datetime done')
     fe.sentiment_features()
-    fe.boc_sentiment_features()
-    fe.bow_sentiment_features()
+    print('sent done')
 
     feat_pyramids = Features()
 
@@ -559,14 +593,14 @@ def main():
     data.set_index('tweet_id', inplace=True)
 
 
-    # embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
-    # embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
-    # bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
+    # # embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
+    # # embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
+    # # bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
+    # #
+    # # feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
+    # #            embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
+    # #            bow_boc_embedding, embedding_sent_bow_boc]
     #
-    # feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
-    #            embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
-    #            bow_boc_embedding, embedding_sent_bow_boc]
-
     embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
     embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
     bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
@@ -581,9 +615,45 @@ def main():
     embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time,
     embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
 
-    i=0
+    feature_names = ['embedding', 'bow', 'boc', 'sent', 'bow_sent', 'boc_sent', 'embedding_sent_dict',
+    'embedding_sent_bow', 'embedding_sent_boc', 'bow_boc', 'embedding_bow', 'embedding_boc', 'bow_sent_boc',
+    'bow_boc_embedding', 'embedding_sent_bow_boc', 'datetime', 'date_sent', 'bow_date', 'boc_date', 'embedding_date',
+    'bow_sent_time', 'boc_sent_time', 'bow_boc_time',
+    'embedding_sent_time', 'embedding_bow_time', 'embedding_boc_time', 'bow_sent_boc_time', 'bow_boc_embedding_time',
+    'embedding_sent_bow_time', 'embedding_sent_boc_time', 'embedding_sent_bow_boc_time']
 
+    # bow_boc_embedding_time, embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time = feat_pyramids.get_all_features()
+    #
+    # feature_list = [bow_boc_embedding_time, embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
+
+    #bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time = feat_pyramids.get_all_features()
+
+    #bow_boc_embedding = feat_pyramids.get_all_features()
+
+    # datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+    # bow_sent_time, boc_sent_time, bow_boc_time, \
+    # embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+    # embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time = feat_pyramids.get_all_features()
+
+    # feature_list = [datetime_dict, date_sent, bow_date, boc_date, embedding_date,
+    # bow_sent_time, boc_sent_time, bow_boc_time,
+    # embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time,
+    # embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
+
+    #print(len(bow_boc_embedding_time), len(embedding_sent_bow_time), len(embedding_sent_boc_time), len(embedding_sent_bow_boc_time))
+
+    print('Done')
+    #
+    # #feature_list = [event_dict]
+    #
+    # # feature_list = [bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time]
+    # #
+    # #
+    # i=31
+    #
+    i = 0
     for feature in feature_list:
+        print('in here')
 
         data['feature_set'+str(i)] = np.nan
         data['feature_set'+str(i)] = data['feature_set'+str(i)].astype(object)
@@ -594,14 +664,19 @@ def main():
             elif str(id) in feature:
                 data.at[id, 'feature_set' + str(i)] = feature[str(id)]
 
+        #print(data.at['981458247879697000', 'feature_set' + str(i)])
 
-        # print(data['feature_set'+str(i)][:4])
+        print('in here')
+        print(feature_names[i])
 
-        # #---- evaluation ----
-        # #print(type(data['feature_set'+str(i)].tolist()))
-        # modelEval =  ModelEvaluation(X=data['feature_set'+str(i)].tolist(), y=data['categories'].tolist(), feature_name='feature_set'+str(i))
-        # modelEval.run_evaluation()
-        # i += 1
+        print(type(data['feature_set'+str(i)]), data['feature_set'+str(i)].shape)
+
+        #---- evaluation ----
+        #print(len(data['feature_set'+str(i)].tolist()), np.array(data['feature_set'+str(i)]).shape
+
+        modelEval =  ModelEvaluation(X=data['feature_set' + str(i)].tolist(), y=data['categories'].tolist(), feature_name=feature_names[i])
+        modelEval.run_evaluation()
+        i += 1
 
 
     # # -- Ok let's train a simple deep model --
