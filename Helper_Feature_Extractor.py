@@ -158,7 +158,9 @@ class Helper_FeatureExtraction:
         stopwords= nltk.corpus.stopwords.words('english')
         stopwords.extend(string.punctuation)
         stopwords.append('')
+
         customize_spacy_stop_words = ["'ve", "n't", "\n", "'s"] #removed "rt" from the list
+
         for w in customize_spacy_stop_words:
             nlp.vocab[w].is_stop = True
         parsed_text = nlp(text)

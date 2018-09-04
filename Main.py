@@ -73,9 +73,10 @@ print(helper.normalize_tweet(text=text, nlp=nlp, lemmatization= False, ))
 fe = FeatureExtraction()
 
 
-bow_dict = fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method= 'svd', n_components=300, analyzer='word', ngram_range=(1, 1),
-                     use_idf=True, preprocessor=None, tokenizer=None, stop_words=None,
-                     max_df=0.98, min_df=1,  max_features=None, vocabulary=None, smooth_idf=True, sublinear_tf=False)
+bow_dict = fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=True, method='svd', n_components=300,
+                           analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                           stop_words=None, max_df=0.98, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                           sublinear_tf=False)
 
 
 '''

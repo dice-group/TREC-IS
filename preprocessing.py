@@ -131,6 +131,7 @@ class preprocessing:
         # save TREC-data as an object
         #trec_data_path = 'data/TREC-data.pkl'
         trec_data_path = 'data/TREC-training_data.pkl'
+        print(trec_data_path)
         file = open(trec_data_path, 'wb')
         pickle.dump(trainingData, file)
         file.close()
@@ -146,7 +147,7 @@ class preprocessing:
                                  tweet.metadata, tweet.priority, tweet.event_type])
         csv_file.close()
 
-    def load_training_data(self, trec_data_path='/home/hzahera/PycharmProjects/Feature Generation/TREC-IS/data/TREC-training_data.pkl'):
+    def load_training_data(self, trec_data_path='data/TREC-train_data.pkl'):
         if (os.path.exists(trec_data_path)):
             file = open(trec_data_path, 'rb')
             trainingData = pickle.load(file)
@@ -169,6 +170,24 @@ class preprocessing:
         tweet_df = pd.DataFrame(tweet_list, columns=['tweet_id', 'categories', 'indicatorTerms', 'text', 'metadata', 'event_type'])
 
         return tweet_df
+
+    def load_test_data(self, trec_data_path='data/TREC-test_data.pkl'):
+        print(trec_data_path)
+
+        testData = pd.read_pickle(trec_data_path)
+        print(len(testData))
+
+        tweet_list = []
+        for key in testData:
+            tweet_list.append(
+                {'tweet_id': str(key), 'text': testData[key].text, 'metadata': testData[key].metadata,
+                 'event_type': testData[key].event_type})
+
+        tweet_df = pd.DataFrame(tweet_list,
+                                columns=['tweet_id', 'text', 'metadata', 'event_type'])
+
+        return tweet_df
+
 
 
 # --- main() for testing the code ---

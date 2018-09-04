@@ -51,14 +51,14 @@ class ModelEvaluation:
 
     def run_evaluation(self, name='default'):
 
-        with open('evaluation/performance_report_'+ name +'.md', 'a') as f:
+        with open('evaluation/performance_report_newTraining'+ name +'.md', 'a') as f:
 
             f.write('------' + self.feature_name + '--------')
             f.write('\n')
 
             names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Linear SVM (squared loss)",  "Logistic Regression",
-                    "Gaussian Process", "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-                     "Naive Bayes", "XG-Boost", "Gradient Boost"]
+                     "Decision Tree", "Random Forest", "Neural Net", "Naive Bayes", "Gradient Boost"]
+
 
             models = [
                 KNeighborsClassifier(n_neighbors=5, weights='distance'),
@@ -66,19 +66,21 @@ class ModelEvaluation:
                 SVC(gamma=2, C=1),
                 LinearSVC(random_state=42, C= 0.1, dual= True, loss='squared_hinge', penalty='l2', tol=0.0001),
                 LogisticRegression(random_state=42, solver='newton-cg'),
-                GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs= -1, random_state=42, warm_start=True, multi_class="one_vs_rest"),
+                #GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs= -1, random_state=42, warm_start=True, multi_class="one_vs_rest"),
+                #GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs=-1),
                 DecisionTreeClassifier(max_depth=7, random_state=42, criterion='gini', min_samples_leaf=2, min_samples_split=12),
                 RandomForestClassifier(max_depth=5, n_estimators=10),
                 MLPClassifier(alpha=1),
                 #AdaBoostClassifier(),
                 GaussianNB(),
-                XGBClassifier(random_state=42, learning_rate= 0.01, n_estimators= 100, subsample=0.7500000000000001),
+                #XGBClassifier(random_state=42, learning_rate= 0.01, n_estimators= 100, subsample=0.7500000000000001),
                 GradientBoostingClassifier(learning_rate=0.01, max_depth=10, max_features=0.35000000000000003,
                                            min_samples_leaf=10, min_samples_split=6, n_estimators=100,
                                            subsample=0.7500000000000001)
 
                 # QuadraticDiscriminantAnalysis()
                  ]
+
 
             #kf = 10
             kf = StratifiedKFold(self.y, n_folds=10, shuffle=True, random_state=42)

@@ -66,6 +66,7 @@ class Features:
         embedding_sent_dict = pickle.load(open('features/embedding_sentiment-'+ name +'.pkl', 'rb'))
         bow_dict = pickle.load(open('features/bow-'+ name +'.pkl', 'rb'))
         boc_dict = pickle.load(open('features/boc_OHE-'+ name +'.pkl', 'rb'))
+        # event_dict = pickle.load(open('features/boc_OHE-'+ name +'.pkl', 'rb'))
 
         # embedding_feat = []
         # bow_feat = []
@@ -108,6 +109,8 @@ class Features:
                 else:
                     print(key)
 
+            print(len(embedding_bow))
+
             file = open('features/embedding_bow-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_bow, file)
             file.close()
@@ -123,6 +126,8 @@ class Features:
                     embedding_boc[key] = np.append(embedding_dict[key], boc_dict[key])
                 else:
                     print(key)
+
+            print(len(embedding_boc))
 
             file = open('features/embedding_boc-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_boc, file)
@@ -154,7 +159,7 @@ class Features:
             for key in bow_sent:
                 bow_sent_boc[key] = np.append(bow_sent[key], boc_dict[key])
 
-            file = open('features/bow_sent_boc-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(bow_sent_boc, file)
             file.close()
 
@@ -180,7 +185,7 @@ class Features:
             for key in embedding_sent_dict:
                 embedding_sent_boc[key] = np.append(embedding_sent_dict[key], boc_dict[key])
 
-            file = open('features/embedding_sent_boc-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_sent_boc, file)
             file.close()
 
@@ -207,7 +212,7 @@ class Features:
                 embedding_sent_bow_boc[key] = np.append(embedding_sent_dict[key], bow_dict[key])
                 embedding_sent_bow_boc[key] = np.append(embedding_sent_bow_boc[key], boc_dict[key])
 
-            file = open('features/embedding_sent_bow_boc-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_sent_bow_boc, file)
             file.close()
 
@@ -221,7 +226,7 @@ class Features:
                 date_sent[key] = np.append(datetime_dict[key], sent_dict[key])
                 print(date_sent[key])
 
-            file = open('features/date_sent-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(date_sent, file)
             file.close()
 
@@ -234,7 +239,7 @@ class Features:
             for key in bow_dict:
                 bow_date[key] = np.append(bow_dict[key], datetime_dict[key])
 
-            file = open('features/bow_date-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(bow_date, file)
             file.close()
 
@@ -247,7 +252,7 @@ class Features:
             for key in boc_dict:
                 boc_date[key] = np.append(boc_dict[key], datetime_dict[key])
 
-            file = open('features/boc_date-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(boc_date, file)
             file.close()
 
@@ -263,7 +268,7 @@ class Features:
                 else:
                     print(key)
 
-            file = open('features/embedding_date-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_date, file)
             file.close()
 
@@ -276,7 +281,7 @@ class Features:
             for key in bow_sent:
                 bow_sent_time[key] = np.append(bow_sent[key], datetime_dict[key])
 
-            file = open('features/bow_sent_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(bow_sent_time, file)
             file.close()
 
@@ -289,7 +294,7 @@ class Features:
             for key in boc_sent:
                 boc_sent_time[key] = np.append(boc_sent[key], datetime_dict[key])
 
-            file = open('features/boc_sent_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(boc_sent_time, file)
             file.close()
 
@@ -302,7 +307,7 @@ class Features:
             for key in bow_boc:
                 bow_boc_time[key] = np.append(bow_boc[key], datetime_dict[key])
 
-            file = open('features/bow_boc_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(bow_boc_time, file)
             file.close()
 
@@ -315,7 +320,7 @@ class Features:
             for key in embedding_sent_dict:
                 embedding_sent_time[key] = np.append(embedding_sent_dict[key], datetime_dict[key])
 
-            file = open('features/embedding_sent_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_sent_time, file)
             file.close()
 
@@ -328,7 +333,7 @@ class Features:
             for key in embedding_bow:
                 embedding_bow_time[key] = np.append(embedding_bow[key], datetime_dict[key])
 
-            file = open('features/embedding_bow_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_bow_time, file)
             file.close()
 
@@ -341,7 +346,7 @@ class Features:
             for key in embedding_boc:
                 embedding_boc_time[key] = np.append(embedding_boc[key], datetime_dict[key])
 
-            file = open('features/embedding_boc_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_boc_time, file)
             file.close()
 
@@ -354,7 +359,7 @@ class Features:
             for key in bow_sent_boc:
                 bow_sent_boc_time[key] = np.append(bow_sent_boc[key], datetime_dict[key])
 
-            file = open('features/bow_sent_boc_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(bow_sent_boc_time, file)
             file.close()
 
@@ -393,7 +398,7 @@ class Features:
             for key in embedding_sent_boc:
                 embedding_sent_boc_time[key] = np.append(embedding_sent_boc[key], datetime_dict[key])
 
-            file = open('features/embedding_sent_boc_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_sent_boc_time, file)
             file.close()
 
@@ -406,7 +411,7 @@ class Features:
             for key in embedding_sent_bow_boc:
                 embedding_sent_bow_boc_time[key] = np.append(embedding_sent_bow_boc[key], datetime_dict[key])
 
-            file = open('features/embedding_sent_bow_boc_time-'+ name +'.pkl', 'wb')
+            file = open(feature_path, 'wb')
             pickle.dump(embedding_sent_bow_boc_time, file)
             file.close()
 
@@ -448,11 +453,15 @@ class Features:
         #        bow_boc_embedding, embedding_sent_bow_boc
 
         return embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
-                embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,  \
-                bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
-                bow_sent_time, boc_sent_time, bow_boc_time, \
-                embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
-                embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
+    embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
+    bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+    bow_sent_time, boc_sent_time, bow_boc_time, \
+    embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+    embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
+
+        # return bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time
+        #return embedding_bow, embedding_boc
+
 
 #  --- Test Feature Pyramids to generate all possible features ----
 def main():
