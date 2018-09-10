@@ -1,4 +1,4 @@
-from contractions import CONTRACTION_MAP
+from Preprocessing.contractions import CONTRACTION_MAP
 import string, spacy, nltk, re
 import emoji
 import json

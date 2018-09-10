@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from dateutil import parser
 import time
-from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from ast import literal_eval
@@ -19,7 +18,6 @@ import spacy
 from gensim.models import KeyedVectors
 from nltk import TweetTokenizer
 
-from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -27,34 +25,33 @@ from textblob import TextBlob
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 
-from Helper_Feature_Extractor import Helper_FeatureExtraction
+from Preprocessing.Helper_Feature_Extractor import Helper_FeatureExtraction
 
-from preprocessing import preprocessing
-from DeepModel import Model
-from Evaluate_Models import ModelEvaluation
+from Preprocessing.tweet_preprocessing import tweet_preprocessing
+from evaluation.Evaluate_Models import ModelEvaluation
 
-from FeaturePyramids import Features
+from Preprocessing.FeaturePyramids import Features
 
 class FeatureExtraction:
     def __init__(self, df = None):
-        self.tweetsPrp = preprocessing()
+        self.tweetsPrp = tweet_preprocessing()
         if df is None:
             self.df = self.tweetsPrp.load_input_feature_extraction()
             #self.df = self.tweetsPrp.load_test_data()
         else:
             self.df = df
-
         self.test_df = self.tweetsPrp.load_test_data()
-        self.hepler_fe = Helper_FeatureExtraction()
         self.nlp = spacy.load('en')
+        self.le = LabelEncoder()
+        self.hepler_fe = Helper_FeatureExtraction()
         self.norm_df = self.create_dataframe_for_normalized_tweets()
         self.norm_test_df = self.create_test_dataframe_for_normalized_tweets()
-        self.tfidf_feature, self.tfidf = self.tfidf_from_tweets()
+        self.tfidf_feature, _, self.tfidf = self.tfidf_from_tweets()
         self.countVec_feature = self.countVec_from_tweets()
+
 
     def reduce_dimensions(self, feature_matrix, n_components=300, method='pca'):
         '''
-
         :param feature_matrix:
         :param n_components:
         :param method: 'pca', 'svd'
@@ -70,12 +67,9 @@ class FeatureExtraction:
             matrix_reduced = svd.fit_transform(feature_matrix)
             return matrix_reduced
 
+
     def create_test_dataframe_for_normalized_tweets(self):
         self.df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
-        # le = LabelEncoder()  # replace categorical data in 'categories' with numerical value
-        #
-        # self.df['categories'] = le.fit_transform(self.df['categories'].astype(str))
-
         normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.test_df)
         new_col = np.asanyarray(normalized_tweets)
         self.test_df['norm_tweets'] = new_col
@@ -84,14 +78,12 @@ class FeatureExtraction:
 
     def create_dataframe_for_normalized_tweets(self):
         self.df.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
-        le = LabelEncoder()  # replace categorical data in 'categories' with numerical value
-
-        self.df['categories'] = le.fit_transform(self.df['categories'].astype(str))
-
-        normalized_tweets=self.hepler_fe.extract_keywords_from_tweets(self.df)
+        self.df['categories'] = self.le.fit_transform(self.df['categories'].astype(str))
+        normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(self.df)
         new_col = np.asanyarray(normalized_tweets)
         self.df['norm_tweets'] = new_col
         return self.df
+
 
     def tfidf_from_tweets(self, dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', norm='l2', ngram_range=(1, 1), use_idf=True,
                           preprocessor=None, tokenizer=None, stop_words=None, max_df=1.0, min_df=1,
@@ -103,11 +95,14 @@ class FeatureExtraction:
                     smooth_idf= smooth_idf, sublinear_tf= sublinear_tf)
 
         feature_matrix = tfidf.fit_transform(self.norm_df['norm_tweets'])
+        test_matrix = tfidf.transform(self.norm_test_df['norm_tweets'])
 
         if dimensionality_reduction:
-            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method), tfidf
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method), \
+                   self.reduce_dimensions(test_matrix.toarray(), n_components=n_components, method=method), tfidf
 
-        return feature_matrix.toarray(), tfidf
+        return feature_matrix.toarray(), test_matrix.toarray(), tfidf
+
 
     def countVec_from_tweets(self, dimensionality_reduction=False, method='pca', n_components=300, analyzer='word', ngram_range=(1, 1),
                              preprocessor=None, tokenizer=None, stop_words=None,
@@ -119,22 +114,21 @@ class FeatureExtraction:
         count_vec = CountVectorizer(analyzer='word', ngram_range=(1, 1))
 
         feature_matrix = count_vec.fit_transform(self.norm_df['norm_tweets'])
-
         test_matrix = count_vec.transform(self.norm_test_df['norm_tweets'])
-        print(feature_matrix.shape, test_matrix.shape)
 
         if dimensionality_reduction:
-            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method)
+            return self.reduce_dimensions(feature_matrix.toarray(), n_components=n_components, method=method), \
+                   self.reduce_dimensions(test_matrix.toarray(), n_components=n_components, method=method)
 
         return feature_matrix.toarray(), test_matrix.toarray()
+
 
     def bow_features(self, mode='countVec', norm='l2', dimensionality_reduction=False, method='pca', n_components=300,
                      analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
                      stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
-                     sublinear_tf=False, name='default', for_test = False):
+                     sublinear_tf=False, name = 'default'):
         '''
 
-        :param for_test: True or False. True, only when the training and testing features have been generated!
         :param name: extension name to be saved for the feature
         :param mode: {'countVec', 'tfidf'}
         :param norm: used to normalize term vectors {'l1', 'l2', None}
@@ -156,17 +150,8 @@ class FeatureExtraction:
         # --- loaded saved features if it's exist ? ---
 
         print(name)
-
-        features_path = 'features/bow-'+ name +'.pkl'
-
-        features_path_test = 'features/test/bow-' + str(name) + '.pkl'
-
-        if (for_test and os.path.exists(features_path_test)):
-            file = open(features_path_test, 'rb')
-            return pickle.load(file)
-
-        features_path = 'features/bow-'+ str(name) +'.pkl'
-
+        features_path = 'features/train/bow-'+ name +'.pkl'
+        features_path_test = 'features/test/bow-' + name + '.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
@@ -178,32 +163,30 @@ class FeatureExtraction:
                                                 max_features=max_features, vocabulary=vocabulary)
         else:
             # tf-idf - returns feature_matrix, tfidf mapping
-            feature_matrix, tfidf = self.tfidf_from_tweets(dimensionality_reduction=dimensionality_reduction, method=method, n_components=n_components, analyzer= analyzer,
+            feature_matrix, test_matrix, tfidf = self.tfidf_from_tweets(dimensionality_reduction=dimensionality_reduction, method=method, n_components=n_components, analyzer= analyzer,
                                              norm= norm, ngram_range= ngram_range, use_idf= use_idf,
                                              preprocessor= preprocessor, tokenizer= tokenizer, stop_words= stop_words,
                                              max_df= max_df, min_df= min_df,  max_features= max_features, vocabulary= vocabulary,
                                              smooth_idf= smooth_idf, sublinear_tf= sublinear_tf)
 
-        bow_table_train = {}
-        bow_table_test =  {}
+        bow_table = {}
+        bow_table_test = {}
         for row, feature_vec in zip(self.norm_df['tweet_id'], feature_matrix):
-            bow_table_train[row] = feature_vec
+            bow_table[row] = feature_vec
 
         for row, feature_vec in zip(self.norm_test_df['tweet_id'], test_matrix):
             bow_table_test[row] = feature_vec
 
         # ----- saving embedding features to disk --------
         file = open(features_path, 'wb')
-        pickle.dump(bow_table_train, file)
+        pickle.dump(bow_table, file)
         file.close()
 
         file = open(features_path_test, 'wb')
         pickle.dump(bow_table_test, file)
         file.close()
 
-        print(len(bow_table_test), len(bow_table_train))
-
-        return bow_table_train
+        return bow_table
 
 
     def sentiment_features_from_tweets(self):
@@ -214,7 +197,7 @@ class FeatureExtraction:
 
     def word2vec_feature_from_tweets(self, glove_input_file, embedd_dim, name= 'default'):
         # --- loaded saved features if it's exist ? ---
-        features_path = 'features/embedding_features-'+ name +'.pkl'
+        features_path = 'features/train/embedding_features-'+ name +'.pkl'
         if (os.path.exists(features_path)):
             file = open(features_path, 'rb')
             return pickle.load(file)
@@ -224,7 +207,7 @@ class FeatureExtraction:
                                                      binary=False)
 
         # get tfidf from each word required in embedding features
-        _, tfidf_scores = self.tfidf_from_tweets()
+        _, _, tfidf_scores = self.tfidf_from_tweets()
         tfidf = dict(zip(tfidf_scores.get_feature_names(), tfidf_scores.idf_))
 
         # ---weighted-average tweet2vec. ---
@@ -254,10 +237,11 @@ class FeatureExtraction:
 
         return embedd_table
 
+
     # ----- extract embedding and sentiment features -----
     def embedding_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/embedding_sentiment-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -274,92 +258,31 @@ class FeatureExtraction:
 
         return embedding  # embedding and sentiment
 
-    # ------ Bag of concepts features ----------
-    def create_bag_of_concepts(self, name= 'default'):
-        '''
-        For each tweet, extracts concepts from Babelnet and creates feature vectors of dimension (300, )
-        :param name:
-        :return:
-        '''
 
-        feature_path = 'features/boc_wordEmbeddings-'+ name +'.pkl'
-        if (os.path.exists(feature_path)):
-            file = open(feature_path, 'rb')
-            return pickle.load(file)
-
-        nlp = spacy.load('en_core_web_lg')
-        text_col = self.norm_df['text']
-        vect_col = []
-        count = 0
-        zero_list = []
-
-        for tweet in text_col:
-            tweet = self.hepler_fe.emoji_to_text(tweet)
-            tweet = self.hepler_fe.expand_contractions(tweet)
-            tweet = re.sub('#', '', tweet)
-            tweet = re.sub('RT', '', tweet)
-            concepts = self.hepler_fe.extract_concepts_from_babelnet(tweet)
-
-            # list comprehension to get the vectors for each word
-            word_vector_list = [nlp(word).vector for word in concepts]
-            # print(len(word_vector_list), ' : ', word_vector_list)
-
-            # calculate the mean/sum across each word
-            average_word_vector = np.sum(word_vector_list, axis=0, keepdims=False)
-            # print('avg word vector : ' , average_word_vector.shape, average_word_vector)
-            if(np.sum(word_vector_list) == 0):
-                zero_list.append((tweet, average_word_vector))
-                count += 1
-            vect_col.append(average_word_vector)
-
-        print(count)
-        print(zero_list)
-        boc_array = np.asanyarray(vect_col)
-        self.norm_df['bocEmbedding'] = boc_array
-
-        embed_table = {}
-
-        for row, feature in zip(self.norm_df['tweet_id'], self.norm_df['bocEmbedding']):
-            embed_table[row] = feature
-
-        # print(embed_table)
-
-        # save embedding features into disk
-        file = open(feature_path, 'wb')
-        pickle.dump(embed_table, file)
-        file.close()
-
-        return embed_table
-
-    def encode_synsets_from_babelfy(self, name='default', for_test=False):
+    def encode_synsets_from_babelfy(self, name= 'default'):
         '''
         Uses one-hot encoding to create feature_vectors from the synsets returned by Babelfy
-        :param for_test:
         :param name:
         :param:
         :return:
         '''
-        feature_path_test = 'features/test/boc_OHE-' + name + '.pkl'
 
-        if (for_test and os.path.exists(feature_path_test)):
-            file = open(feature_path_test, 'rb')
-            return pickle.load(file)
-
-        feature_path = 'features/boc_OHE-'+ name +'.pkl'
+        feature_path = 'features/train/boc_OHE-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
-        text_col = self.norm_df['text']
-        #text_col_test = self.norm_test_df['text']
+        test_feature_path = 'features/test/boc_OHE-' + name + '.pkl'
+        # if (os.path.exists(test_feature_path)):
+        #     file = open(test_feature_path, 'rb')
+        #     return pickle.load(file)
 
         all_synsets = []   # a list of all synsets in the dataset
         tweet_synsets = [] #for each tweet, preserves its synsets
 
-        all_synsets_test = []
-        #tweet_synsets_test = []
+        tweet_synsets_test = []
 
-        for tweet in text_col:
+        for tweet in self.norm_df['text']:
             synset_list = []   # list of synsetIDs for one tweet
             tweet = self.hepler_fe.emoji_to_text(tweet)
             tweet = self.hepler_fe.expand_contractions(tweet)
@@ -371,59 +294,30 @@ class FeatureExtraction:
                 synset_list.append(synsetDict[key])
             tweet_synsets.append(synset_list)
 
-        # for test data
-        # for tweet in text_col_test:
-        #     synset_list = []   # list of synsetIDs for one tweet
-        #     tweet = self.hepler_fe.emoji_to_text(tweet)
-        #     tweet = self.hepler_fe.expand_contractions(tweet)
-        #     tweet = re.sub('#', '', tweet)
-        #     tweet = re.sub('RT', '', tweet)
-        #     synsetDict, scoreDict = self.hepler_fe.extract_synsets_from_babelfy(tweet)
-        #     for key in synsetDict.keys():
-        #         all_synsets_test.append(synsetDict[key])
-        #         synset_list.append(synsetDict[key])
-        #     tweet_synsets_test.append(synset_list)
+        for tweet in self.norm_test_df['text']:
+            synset_list = []   # list of synsetIDs for one tweet
+            tweet = self.hepler_fe.emoji_to_text(tweet)
+            tweet = self.hepler_fe.expand_contractions(tweet)
+            tweet = re.sub('#', '', tweet)
+            tweet = re.sub('RT', '', tweet)
+            synsetDict, scoreDict = self.hepler_fe.extract_synsets_from_babelfy(tweet)
+            for key in synsetDict.keys():
+                all_synsets.append(synsetDict[key])
+                synset_list.append(synsetDict[key])
+            tweet_synsets_test.append(synset_list)
 
-        print('all tweet synsets: ', tweet_synsets)
-
-        if (os.path.exists('babelnet/synsets-test.pkl')):
-            file = open('babelnet/synsets-test.pkl', 'rb')
-            tweet_synsets_test = pickle.load(file)
-
-        print('all tweet synsets TEST: ', tweet_synsets_test)
-
-        #save synsets for test data
-        # file = open('babelnet/synsets-test.pkl', 'wb')
-        # pickle.dump(tweet_synsets_test, file)
-        # file.close()
-
-        test_train_synsets = tweet_synsets + tweet_synsets_test
-
-        #iterable_tweet_synsets = itertools.chain.from_iterable(tweet_synsets)
-        iterable_tweet_synsets = itertools.chain.from_iterable(test_train_synsets)
+        combined_synsets = tweet_synsets+tweet_synsets_test
+        iterable_tweet_synsets = itertools.chain.from_iterable(combined_synsets)
 
         # create a dictionary that maps synsets to numerical ids
         synset_to_id = {token: idx+1 for idx, token in enumerate(set(iterable_tweet_synsets))}
 
-        #synset_to_id_test = {token: idx + 1 for idx, token in enumerate(set(iterable_tweet_synsets_test))}
-
-        print('synset_to_ids: ', synset_to_id)
-        #print('synset_to_ids TEST: ', synset_to_id_test)
-
-
         # convert synset lists to id-lists
-        synset_ids =[[synset_to_id[token] for token in synset_list] for synset_list in test_train_synsets]
-        print('synset_ids: ', synset_ids)
-        print('total synsets: ', len(synset_to_id))
-
-        # synset_ids_test = [[synset_to_id_test[token] for token in synset_list] for synset_list in tweet_synsets_test]
-        # print('synset_ids: ', synset_ids_test)
-        # print('total synsets: ', len(synset_to_id_test))
+        synset_ids =[[synset_to_id[token] for token in synset_list] for synset_list in combined_synsets]
 
         # convert list of synset_ids to one-hot representation
         mlb = MultiLabelBinarizer()
-        boc_features = mlb.fit_transform(test_train_synsets)
-        #boc_features_test = mlb.transform(tweet_synsets_test)
+        boc_features = mlb.fit_transform(synset_ids)
 
         boc_table = {}
         boc_table_test = {}
@@ -434,19 +328,86 @@ class FeatureExtraction:
         for row, feature in zip(self.norm_test_df['tweet_id'], boc_features[len(tweet_synsets):]):
             boc_table_test[row] = feature
 
+        print(len(boc_table), len(boc_table_test))
+
         # save one-hot vectors into disk (type: {tweetID : <one-hot vector>} )
         file = open(feature_path, 'wb')
         pickle.dump(boc_table, file)
         file.close()
 
-
-        file = open(feature_path_test, 'wb')
+        file = open(test_feature_path, 'wb')
         pickle.dump(boc_table_test, file)
         file.close()
 
-        print(len(boc_table_test), len(boc_table))
+        return boc_table
+
+
+    def sense2vec_feature_from_tweets(self, input_file='data/embeddings/NASARIembed+UMBC_w2v.txt', embedd_dim=300,
+                                      name='default'):
+
+        # --- loaded saved features if it's exist ? ---
+        features_path = 'features/train/boc-synset_features-' + name + '.pkl'
+        if (os.path.exists(features_path)):
+            file = open(features_path, 'rb')
+            return pickle.load(file)
+
+        # --- otherwise generate features ---
+        synset2vec = KeyedVectors.load_word2vec_format(input_file, unicode_errors='ignore',
+                                                       binary=False)
+
+        tweet_synsets = []  # for each tweet, preserves its synsets
+
+        training_synset_path = 'data/babelnet/train_synsets.pkl'
+        if (os.path.exists(training_synset_path)):
+            file = open(training_synset_path, 'rb')
+            tweet_synsets = pickle.load(file)
+
+        else:
+            text_col = self.norm_df['text']
+            all_synsets = []  # a list of all synsets in the dataset
+
+            for tweet in text_col:
+                synset_list = []  # list of synsetIDs for one tweet
+                tweet = self.hepler_fe.emoji_to_text(tweet)
+                tweet = self.hepler_fe.expand_contractions(tweet)
+                tweet = re.sub('#', '', tweet)
+                tweet = re.sub('RT', '', tweet)
+                synsetDict, scoreDict = self.hepler_fe.extract_synsets_from_babelfy(tweet)
+                for key in synsetDict.keys():
+                    all_synsets.append(synsetDict[key])
+                    synset_list.append(synsetDict[key])
+                tweet_synsets.append(synset_list)
+
+            file = open(training_synset_path, 'wb')
+            pickle.dump(tweet_synsets, file)
+            file.close()
+
+        iterable_tweet_synsets = itertools.chain.from_iterable(tweet_synsets)
+
+        # create a dictionary that maps synsets to numerical ids
+        synset_to_id = {token: idx + 1 for idx, token in enumerate(set(iterable_tweet_synsets))}
+
+        # ---weighted-average tweet2vec. ---
+        def build_average_synset2vec(tokens, size):
+            vec = np.mean([synset2vec[word] * synset_to_id[word] for word in tokens if word in synset2vec]
+                          or [np.zeros(size)], axis=0)
+            return vec
+
+        boc_table = {}
+
+        for i, row in self.norm_df.iterrows():
+            tweet2vec = build_average_synset2vec(tweet_synsets[i], size=embedd_dim)
+            boc_table[row['tweet_id']] = tweet2vec
+
+        print(len(boc_table))
+
+        # ----- saving embedding features to disk --------
+        file = open(features_path, 'wb')
+        pickle.dump(boc_table, file)
+        file.close()
 
         return boc_table
+
 
     # ----- extract bow and boc features -----
     def bow_boc_features(self, mode='countVec', norm='l2', dimensionality_reduction=True, n_components=300,
@@ -455,14 +416,12 @@ class FeatureExtraction:
                          sublinear_tf=False, name='default'):
 
         # load saved features if it's exist ?
-        feature_path = 'features/boc-bow-'+ name +'.pkl'
+        feature_path = 'features/train/boc-bow-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
         boc_table = self.encode_synsets_from_babelfy()  # --- one-hot encoders ----
-
-        #boc_table = self.create_bag_of_concepts()
 
         bow_table = self.bow_features(mode=mode, norm=norm, dimensionality_reduction=dimensionality_reduction,
                                       n_components=n_components, analyzer=analyzer, ngram_range=ngram_range,
@@ -485,10 +444,11 @@ class FeatureExtraction:
 
         return bow_table  # bow and boc
 
+
     # ----- extract bow and sentiment features -----
     def bow_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/bow_sentiment-'+ name +'.pkl'
+        feature_path = 'features/train/bow_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -511,16 +471,17 @@ class FeatureExtraction:
 
         return bow_dict  # bow and sentiment
 
+
     # ----- extract boc and sentiment features -----
     def boc_sentiment_features(self, name='default'):
         # load saved features if it's exist ?
-        feature_path = 'features/boc_sentiment-'+ name +'.pkl'
+        feature_path = 'features/train/boc_sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
 
         self.sentiment_features_from_tweets()
-        boc_dict = self.encode_synsets_from_babelfy(name=name)
+        boc_dict = self.sense2vec_feature_from_tweets(name=name)
 
         for _, row in self.norm_df.iterrows():
             boc_dict[row['tweet_id']] = np.append(boc_dict[row['tweet_id']], row['sentiment'])
@@ -531,8 +492,9 @@ class FeatureExtraction:
 
         return boc_dict  # boc and sentiment
 
+
     def sentiment_features(self, name='default'):
-        feature_path = 'features/sentiment-'+ name +'.pkl'
+        feature_path = 'features/train/sentiment-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -550,8 +512,9 @@ class FeatureExtraction:
 
         return sent_dict  # sentiment
 
+
     def extract_datetime_feature(self, name='default'):
-        feature_path = 'features/datetimeNew-'+ name +'.pkl'
+        feature_path = 'features/train/datetimeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             return pickle.load(file)
@@ -573,18 +536,15 @@ class FeatureExtraction:
         self.norm_df['timestamp'] = datetime
         self.norm_df = self.norm_df.sort_values(by=['event_type', 'timestamp'])
 
-        print(self.norm_df['timestamp'].head(50))
-
         val = 0
         event = self.norm_df.at[0, 'event_type']
-        print(event)
+
         for i, row in self.norm_df.iterrows():
             if event == row['event_type']:
                 self.norm_df.loc[i, 'timestamp'] = val
                 val += 1
             else:
                 event = row['event_type']
-                print(event)
                 val = 0
                 self.norm_df.loc[i, 'timestamp'] = val
                 val += 1
@@ -603,6 +563,7 @@ class FeatureExtraction:
 
         # return datetime_dict # datetime
         return datetime_dict
+
 
     def encode_event_type(self):
 
@@ -659,46 +620,35 @@ In this code, we consider the first representation
 def main():
     fe = FeatureExtraction()
 
-    # event_dict = fe.encode_event_type()
+    fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=False, method='svd', n_components=300,
+                    analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
+                    stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
+                    sublinear_tf=False)
 
-    # fe.bow_features(mode='countVec', norm='l2', dimensionality_reduction=False, method='svd', n_components=300,
-    #                 analyzer='word', ngram_range=(1, 1), use_idf=True, preprocessor=None, tokenizer=None,
-    #                 stop_words=None, max_df=1.0, min_df=1, max_features=None, vocabulary=None, smooth_idf=True,
-    #                 sublinear_tf=False)
+    fe.encode_synsets_from_babelfy()
+    print('bow boc - DONE')
 
-    # fe.encode_synsets_from_babelfy()
-    #
-    # print('bow boc - DONE')
+    fe.embedding_sentiment_features()
+    print('embedding DONE')
 
-    # fe.embedding_sentiment_features()
-    #
-    # print('embedding DONE')
-    # fe.bow_sentiment_features()
-    #
-    #
-    # print('bow_sent done')
-    # fe.boc_sentiment_features()
-    # print('boc_sent done')
-    # fe.extract_datetime_feature()
-    # print('datetime done')
-    # fe.sentiment_features()
-    # print('sent done')
+    fe.bow_sentiment_features()
+    print('bow_sent done')
+
+    fe.boc_sentiment_features()
+    print('boc_sent done')
+
+    fe.extract_datetime_feature()
+    print('datetime done')
+
+    fe.sentiment_features()
+    print('sent done')
 
     feat_pyramids = Features()
-    #
-    # # --- load training data ---
+
+    # # # --- load training data ---
     data = fe.norm_df[['tweet_id', 'categories']]
     data.set_index('tweet_id', inplace=True)
 
-
-    # # embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
-    # # embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
-    # # bow_boc_embedding, embedding_sent_bow_boc = feat_pyramids.get_all_features()
-    # #
-    # # feature_list = [embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict,
-    # #            embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,
-    # #            bow_boc_embedding, embedding_sent_bow_boc]
-    #
     embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
     embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
     bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
@@ -713,7 +663,6 @@ def main():
     embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time,
     embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
 
-
     feature_names = ['embedding', 'bow', 'boc', 'sent', 'bow_sent', 'boc_sent', 'embedding_sent_dict',
     'embedding_sent_bow', 'embedding_sent_boc', 'bow_boc', 'embedding_bow', 'embedding_boc', 'bow_sent_boc',
     'bow_boc_embedding', 'embedding_sent_bow_boc', 'datetime', 'date_sent', 'bow_date', 'boc_date', 'embedding_date',
@@ -721,37 +670,8 @@ def main():
     'embedding_sent_time', 'embedding_bow_time', 'embedding_boc_time', 'bow_sent_boc_time', 'bow_boc_embedding_time',
     'embedding_sent_bow_time', 'embedding_sent_boc_time', 'embedding_sent_bow_boc_time']
 
-    # bow_boc_embedding_time, embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time = feat_pyramids.get_all_features()
-    #
-    # feature_list = [bow_boc_embedding_time, embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
-
-    #bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time = feat_pyramids.get_all_features()
-
-    #bow_boc_embedding = feat_pyramids.get_all_features()
-
-    # datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
-    # bow_sent_time, boc_sent_time, bow_boc_time, \
-    # embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
-    # embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time = feat_pyramids.get_all_features()
-
-    # feature_list = [datetime_dict, date_sent, bow_date, boc_date, embedding_date,
-    # bow_sent_time, boc_sent_time, bow_boc_time,
-    # embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time,
-    # embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time]
-
-    #print(len(bow_boc_embedding_time), len(embedding_sent_bow_time), len(embedding_sent_boc_time), len(embedding_sent_bow_boc_time))
-
-    print('Done')
-    #
-    # #feature_list = [event_dict]
-    #
-    # # feature_list = [bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time]
-    # #
-    # #
-    # i=31
     i = 0
     for feature in feature_list:
-        print('in here')
 
         data['feature_set'+str(i)] = np.nan
         data['feature_set'+str(i)] = data['feature_set'+str(i)].astype(object)
@@ -762,26 +682,14 @@ def main():
             elif str(id) in feature:
                 data.at[id, 'feature_set' + str(i)] = feature[str(id)]
 
-        #print(data.at['981458247879697000', 'feature_set' + str(i)])
-
-        print('in here')
         print(feature_names[i])
 
         print(type(data['feature_set'+str(i)]), data['feature_set'+str(i)].shape)
 
         #---- evaluation ----
-        #print(len(data['feature_set'+str(i)].tolist()), np.array(data['feature_set'+str(i)]).shape
-
         modelEval =  ModelEvaluation(X=data['feature_set' + str(i)].tolist(), y=data['categories'].tolist(), feature_name=feature_names[i])
         modelEval.run_evaluation()
         i += 1
-
-
-    # # -- Ok let's train a simple deep model --
-    # simpleModel = Model(X=data['emb_senti_features'].tolist(), y=data['categories'].tolist())
-    # simpleModel.simple_DeepModel()
-    #
-    # simpleModel.evaluate_model()
 
 if __name__ == '__main__':
     main()

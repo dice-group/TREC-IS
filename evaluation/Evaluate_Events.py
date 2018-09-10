@@ -1,11 +1,11 @@
 from glob import glob
 import os
 from itertools import combinations
-from Feature_Extractor import FeatureExtraction
-from Evaluate_Models import ModelEvaluation
+from Preprocessing.Feature_Extractor import FeatureExtraction
+from evaluation.Evaluate_Models import ModelEvaluation
 
 import pandas as pd
-from FeaturePyramids import Features
+from Preprocessing.FeaturePyramids import Features
 import numpy as np
 
 class EventEvaluation:

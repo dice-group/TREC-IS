@@ -9,7 +9,7 @@ from twarc import Twarc
 
 from Preprocessing.Tweet import Tweet
 
-class preprocessing:
+class tweet_preprocessing:
     def __init__(self, consumer_key=None, consumer_secret=None,
                  access_token=None, access_token_secret=None, trec_path=None, tweets_dir=None):
         '''
@@ -194,7 +194,7 @@ class preprocessing:
 def main():
     from secrets import consumer_key, consumer_secret, access_token, access_token_secret
 
-    tweetsPrp = preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
+    tweetsPrp = tweet_preprocessing(trec_path='data/TRECIS-CTIT-H-Training.json', tweets_dir='data/tweets')
 
     tweetsPrp.consumer_key = consumer_key
     tweetsPrp.consumer_secret = consumer_secret

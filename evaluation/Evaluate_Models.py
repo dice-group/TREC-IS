@@ -51,7 +51,7 @@ class ModelEvaluation:
 
     def run_evaluation(self, name='default'):
 
-        with open('evaluation/performance_report_newTraining'+ name +'.md', 'a') as f:
+        with open('evaluation/performance_report_final'+ name +'.md', 'a') as f:
 
             f.write('------' + self.feature_name + '--------')
             f.write('\n')
@@ -92,7 +92,7 @@ class ModelEvaluation:
                 print(name)
                 # f.write(name)
                 # f.write(classification_report(originalclass, predictedclass))
-                joblib.dump(model, 'models/final/' + self.feature_name + '-' + model.__class__.__name__+ '-'+ name +'.pkl')
+                joblib.dump(model, 'models/final_eval/' + self.feature_name + '-' + model.__class__.__name__+ '-'+ name +'.pkl')
                 for fold_idx, accuracy in enumerate(scores):
                     entries.append((name, fold_idx, accuracy))
 

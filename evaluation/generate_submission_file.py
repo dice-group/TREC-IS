@@ -1,35 +1,17 @@
-from Feature_Extractor import FeatureExtraction
+from Preprocessing.Feature_Extractor import FeatureExtraction
 import pickle, joblib
-import numpy as np
-import pandas as pd
-from Evaluate_Models import ModelEvaluation
-from sklearn.preprocessing import scale, normalize
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
-from sklearn.cross_validation import StratifiedKFold
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import LinearSVC, SVC
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from evaluation.Evaluate_Models import ModelEvaluation
 import pandas as pd
 from sklearn.externals import joblib
-from sklearn.ensemble import GradientBoostingClassifier
-from xgboost import XGBClassifier
 import numpy as np
-from sklearn_pandas import DataFrameMapper, cross_val_score
+
 
 
 def main():
-    # set these parameters to test the code
-    accuracy_report = False
 
-    class_tweets_embedd = True
+    accuracy_report = False # set to True to get the evaluation report of the given feature
+
+    class_tweets_embedd = True # set True, to generate submission file
 
     fe = FeatureExtraction()
 
@@ -63,17 +45,15 @@ def main():
     if class_tweets_embedd:
 
         train_tweets_dict = pickle.load(
-            open('features/embedding_sentiment-default.pkl', 'rb'))
+            open('features/train/bow_boc-default.pkl', 'rb'))
 
         # ___________(1.1)___ loaded extracted_Features from test data ___________ #
         test_tweets_dict = pickle.load(
-            open('features/test/embedding_sentiment-default.pkl', 'rb'))
+            open('features/test/bow_boc-default.pkl', 'rb'))
 
 
         # ___________(1.2)___ load pre-trained deep model ___________#
-        # embedding_model = load_model(
-        #     '/home/hzahera/PycharmProjects/TREC-IS/data/saved_models/deep_model/bow_boc_embedding-default.h5')
-        with open('models/feature_set6-SVC-RBF SVM.pkl', 'rb') as fid:
+        with open('models/final/bow_boc-LinearSVC-LinearSVM(squaredloss).pkl', 'rb') as fid:
             svm = joblib.load(fid)
             trained_svm = svm.fit(list(train_tweets_dict.values()), data['categories'].tolist())
 
@@ -108,7 +88,7 @@ def main():
         resultsfile['importance_scores'] = softmax_out
 
         resultsfile['information_type'] = ''
-        resultsfile['runtag'] = 'myrun1'
+        resultsfile['runtag'] = 'UPB_DICE3'
 
         for id, row in resultsfile.iterrows():
             resultsfile.at[id, 'information_type'] = test_tweets_classes[str(id)]  # fill the predicted classes
@@ -145,7 +125,7 @@ def main():
 
         resultsfile = pd.concat(group_list)
         # save submission files
-        resultsfile.to_csv('evaluation/submissionFile_bow_boc_emb.csv', header=None,
+        resultsfile.to_csv('evaluation/submissionFile_bow_boc.csv', header=None,
                            sep='\t', index=False)
 
 

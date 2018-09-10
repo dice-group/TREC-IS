@@ -58,19 +58,14 @@ class Features:
     def get_all_features(self, name='default'):
 
         # loading saved features
-        datetime_dict = pickle.load(open('features/datetime-'+ name +'.pkl', 'rb'))
-        sent_dict = pickle.load(open('features/sentiment-'+ name +'.pkl', 'rb'))
-        bow_sent =  pickle.load(open('features/bow_sentiment-'+ name +'.pkl', 'rb'))
-        boc_sent = pickle.load(open('features/boc_sentiment-'+ name +'.pkl', 'rb'))
-        embedding_dict = pickle.load(open('features/embedding_features-'+ name +'.pkl', 'rb'))
-        embedding_sent_dict = pickle.load(open('features/embedding_sentiment-'+ name +'.pkl', 'rb'))
-        bow_dict = pickle.load(open('features/bow-'+ name +'.pkl', 'rb'))
-        boc_dict = pickle.load(open('features/boc_OHE-'+ name +'.pkl', 'rb'))
-        # event_dict = pickle.load(open('features/boc_OHE-'+ name +'.pkl', 'rb'))
-
-        # embedding_feat = []
-        # bow_feat = []
-        # boc_feat = []
+        datetime_dict = pickle.load(open('features/train/datetimeNew-'+ name +'.pkl', 'rb'))
+        sent_dict = pickle.load(open('features/train/sentiment-'+ name +'.pkl', 'rb'))
+        bow_sent =  pickle.load(open('features/train/bow_sentiment-'+ name +'.pkl', 'rb'))
+        boc_sent = pickle.load(open('features/train/boc_sentiment-'+ name +'.pkl', 'rb'))
+        embedding_dict = pickle.load(open('features/train/embedding_features-'+ name +'.pkl', 'rb'))
+        embedding_sent_dict = pickle.load(open('features/train/embedding_sentiment-'+ name +'.pkl', 'rb'))
+        bow_dict = pickle.load(open('features/train/bow-'+ name +'.pkl', 'rb'))
+        boc_dict = pickle.load(open('features/train/boc_OHE-'+ name +'.pkl', 'rb'))
 
         embedding_bow = {}
         embedding_boc = {}
@@ -98,8 +93,8 @@ class Features:
         embedding_sent_bow_boc_time = {}
 
 
-        if (os.path.exists('features/embedding_bow-'+ name +'.pkl')):
-            file = open('features/embedding_bow-'+ name +'.pkl', 'rb')
+        if (os.path.exists('features/train/embedding_bow-'+ name +'.pkl')):
+            file = open('features/train/embedding_bow-'+ name +'.pkl', 'rb')
             embedding_bow = pickle.load(file)
 
         else:
@@ -109,13 +104,11 @@ class Features:
                 else:
                     print(key)
 
-            print(len(embedding_bow))
-
-            file = open('features/embedding_bow-'+ name +'.pkl', 'wb')
+            file = open('features/train/embedding_bow-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_bow, file)
             file.close()
 
-        feature_path = 'features/embedding_boc-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_boc-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_boc = pickle.load(file)
@@ -127,13 +120,11 @@ class Features:
                 else:
                     print(key)
 
-            print(len(embedding_boc))
-
-            file = open('features/embedding_boc-'+ name +'.pkl', 'wb')
+            file = open('features/train/embedding_boc-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_boc, file)
             file.close()
 
-        feature_path = 'features/bow_boc_embedding-'+ name +'.pkl'
+        feature_path = 'features/train/bow_boc_embedding-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_boc_embedding = pickle.load(file)
@@ -146,11 +137,11 @@ class Features:
                 else:
                     print(key)
 
-            file = open('features/bow_boc_embedding-'+ name +'.pkl', 'wb')
+            file = open('features/train/bow_boc_embedding-'+ name +'.pkl', 'wb')
             pickle.dump(bow_boc_embedding, file)
             file.close()
 
-        feature_path = 'features/bow_sent_boc-'+ name +'.pkl'
+        feature_path = 'features/train/bow_sent_boc-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_sent_boc = pickle.load(file)
@@ -159,11 +150,11 @@ class Features:
             for key in bow_sent:
                 bow_sent_boc[key] = np.append(bow_sent[key], boc_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/bow_sent_boc-'+ name +'.pkl', 'wb')
             pickle.dump(bow_sent_boc, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_bow-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_bow-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_bow = pickle.load(file)
@@ -172,11 +163,11 @@ class Features:
             for key in embedding_sent_dict:
                 embedding_sent_bow[key] = np.append(embedding_sent_dict[key], bow_dict[key])
 
-            file = open('features/embedding_sent_bow-'+ name +'.pkl', 'wb')
+            file = open('features/train/embedding_sent_bow-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_bow, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_boc-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_boc-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_boc = pickle.load(file)
@@ -185,11 +176,11 @@ class Features:
             for key in embedding_sent_dict:
                 embedding_sent_boc[key] = np.append(embedding_sent_dict[key], boc_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/embedding_sent_boc-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_boc, file)
             file.close()
 
-        feature_path = 'features/bow_boc-'+ name +'.pkl'
+        feature_path = 'features/train/bow_boc-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_boc = pickle.load(file)
@@ -198,11 +189,11 @@ class Features:
             for key in bow_dict:
                 bow_boc[key] = np.append(bow_dict[key], boc_dict[key])
 
-            file = open('features/bow_boc-'+ name +'.pkl', 'wb')
+            file = open('features/train/bow_boc-'+ name +'.pkl', 'wb')
             pickle.dump(bow_boc, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_bow_boc-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_bow_boc-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_bow_boc = pickle.load(file)
@@ -212,11 +203,11 @@ class Features:
                 embedding_sent_bow_boc[key] = np.append(embedding_sent_dict[key], bow_dict[key])
                 embedding_sent_bow_boc[key] = np.append(embedding_sent_bow_boc[key], boc_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/embedding_sent_bow_boc-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_bow_boc, file)
             file.close()
 
-        feature_path = 'features/date_sent-'+ name +'.pkl'
+        feature_path = 'features/train/dateNew_sent-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             date_sent = pickle.load(file)
@@ -226,11 +217,11 @@ class Features:
                 date_sent[key] = np.append(datetime_dict[key], sent_dict[key])
                 print(date_sent[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/dateNew_sent-'+ name +'.pkl', 'wb')
             pickle.dump(date_sent, file)
             file.close()
 
-        feature_path = 'features/bow_date-'+ name +'.pkl'
+        feature_path = 'features/train/bow_dateNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_date = pickle.load(file)
@@ -239,11 +230,11 @@ class Features:
             for key in bow_dict:
                 bow_date[key] = np.append(bow_dict[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/bow_dateNew-'+ name +'.pkl', 'wb')
             pickle.dump(bow_date, file)
             file.close()
 
-        feature_path = 'features/boc_date-' + name + '.pkl'
+        feature_path = 'features/train/boc_dateNew-' + name + '.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             boc_date = pickle.load(file)
@@ -252,11 +243,11 @@ class Features:
             for key in boc_dict:
                 boc_date[key] = np.append(boc_dict[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/boc_dateNew-'+ name +'.pkl', 'wb')
             pickle.dump(boc_date, file)
             file.close()
 
-        feature_path = 'features/embedding_date-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_dateNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_date = pickle.load(file)
@@ -268,11 +259,11 @@ class Features:
                 else:
                     print(key)
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/embedding_dateNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_date, file)
             file.close()
 
-        feature_path = 'features/bow_sent_time-'+ name +'.pkl'
+        feature_path = 'features/train/bow_sent_time-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_sent_time = pickle.load(file)
@@ -281,11 +272,11 @@ class Features:
             for key in bow_sent:
                 bow_sent_time[key] = np.append(bow_sent[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/bow_sent_time-'+ name +'.pkl', 'wb')
             pickle.dump(bow_sent_time, file)
             file.close()
 
-        feature_path = 'features/boc_sent_time-' + name + '.pkl'
+        feature_path = 'features/train/boc_sent_timeNew-' + name + '.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             boc_sent_time = pickle.load(file)
@@ -294,11 +285,11 @@ class Features:
             for key in boc_sent:
                 boc_sent_time[key] = np.append(boc_sent[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            file = open('features/train/boc_sent_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(boc_sent_time, file)
             file.close()
 
-        feature_path = 'features/bow_boc_time-'+ name +'.pkl'
+        feature_path = 'features/train/bow_boc_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_boc_time = pickle.load(file)
@@ -307,11 +298,13 @@ class Features:
             for key in bow_boc:
                 bow_boc_time[key] = np.append(bow_boc[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(bow_boc_time))
+
+            file = open('features/train/bow_boc_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(bow_boc_time, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_time-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_time = pickle.load(file)
@@ -320,11 +313,13 @@ class Features:
             for key in embedding_sent_dict:
                 embedding_sent_time[key] = np.append(embedding_sent_dict[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(embedding_sent_time))
+
+            file = open('features/train/embedding_sent_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_time, file)
             file.close()
 
-        feature_path = 'features/embedding_bow_time-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_bow_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_bow_time = pickle.load(file)
@@ -333,11 +328,13 @@ class Features:
             for key in embedding_bow:
                 embedding_bow_time[key] = np.append(embedding_bow[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(embedding_bow_time))
+
+            file = open('features/train/embedding_bow_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_bow_time, file)
             file.close()
 
-        feature_path = 'features/embedding_boc_time-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_boc_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_boc_time = pickle.load(file)
@@ -346,11 +343,13 @@ class Features:
             for key in embedding_boc:
                 embedding_boc_time[key] = np.append(embedding_boc[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(embedding_boc_time))
+
+            file = open('features/train/embedding_boc_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_boc_time, file)
             file.close()
 
-        feature_path = 'features/bow_sent_boc_time-'+ name +'.pkl'
+        feature_path = 'features/train/bow_sent_boc_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_sent_boc_time = pickle.load(file)
@@ -359,11 +358,13 @@ class Features:
             for key in bow_sent_boc:
                 bow_sent_boc_time[key] = np.append(bow_sent_boc[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(bow_sent_boc_time))
+
+            file = open('features/train/bow_sent_boc_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(bow_sent_boc_time, file)
             file.close()
 
-        feature_path = 'features/bow_boc_embedding_time-'+ name +'.pkl'
+        feature_path = 'features/train/bow_boc_embedding_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             bow_sent_boc_time = pickle.load(file)
@@ -372,11 +373,13 @@ class Features:
             for key in bow_boc_embedding:
                 bow_boc_embedding_time[key] = np.append(bow_boc_embedding[key], datetime_dict[key])
 
-            file = open('features/bow_boc_embedding_time-'+ name +'.pkl', 'wb')
+            print(len(bow_boc_embedding_time))
+
+            file = open('features/train/bow_boc_embedding_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(bow_boc_embedding_time, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_bow_time-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_bow_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_bow_time = pickle.load(file)
@@ -385,11 +388,13 @@ class Features:
             for key in embedding_sent_bow:
                 embedding_sent_bow_time[key] = np.append(embedding_sent_bow[key], datetime_dict[key])
 
-            file = open('features/embedding_sent_bow_time-'+ name +'.pkl', 'wb')
+            print(len(embedding_sent_bow_time))
+
+            file = open('features/train/embedding_sent_bow_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_bow_time, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_boc_time-' + name + '.pkl'
+        feature_path = 'features/train/embedding_sent_boc_timeNew-' + name + '.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_boc_time = pickle.load(file)
@@ -398,11 +403,13 @@ class Features:
             for key in embedding_sent_boc:
                 embedding_sent_boc_time[key] = np.append(embedding_sent_boc[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(embedding_sent_boc_time))
+
+            file = open('features/train/embedding_sent_boc_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_boc_time, file)
             file.close()
 
-        feature_path = 'features/embedding_sent_bow_boc_time-'+ name +'.pkl'
+        feature_path = 'features/train/embedding_sent_bow_boc_timeNew-'+ name +'.pkl'
         if (os.path.exists(feature_path)):
             file = open(feature_path, 'rb')
             embedding_sent_bow_boc_time = pickle.load(file)
@@ -411,7 +418,9 @@ class Features:
             for key in embedding_sent_bow_boc:
                 embedding_sent_bow_boc_time[key] = np.append(embedding_sent_bow_boc[key], datetime_dict[key])
 
-            file = open(feature_path, 'wb')
+            print(len(embedding_sent_bow_boc_time))
+
+            file = open('features/train/embedding_sent_bow_boc_timeNew-'+ name +'.pkl', 'wb')
             pickle.dump(embedding_sent_bow_boc_time, file)
             file.close()
 
@@ -453,14 +462,24 @@ class Features:
         #        bow_boc_embedding, embedding_sent_bow_boc
 
         return embedding_dict, bow_dict, boc_dict, sent_dict, bow_sent, boc_sent, embedding_sent_dict, \
-    embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
-    bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
-    bow_sent_time, boc_sent_time, bow_boc_time, \
-    embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
-    embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
+                embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc,  \
+                bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+                bow_sent_time, boc_sent_time, bow_boc_time, \
+                embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+                embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
+
+        # return boc_sent, embedding_sent_dict, \
+        #     embedding_sent_bow, embedding_sent_boc, bow_boc, embedding_bow, embedding_boc, bow_sent_boc, \
+        #     bow_boc_embedding, embedding_sent_bow_boc, datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+        #     bow_sent_time, boc_sent_time, bow_boc_time, \
+        #     embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+        #     embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
 
         # return bow_boc_embedding, embedding_sent_bow_time, bow_boc_embedding_time
-        #return embedding_bow, embedding_boc
+        # return datetime_dict, date_sent, bow_date, boc_date, embedding_date, \
+        #         bow_sent_time, boc_sent_time, bow_boc_time, \
+        #         embedding_sent_time, embedding_bow_time, embedding_boc_time, bow_sent_boc_time, bow_boc_embedding_time, \
+        #         embedding_sent_bow_time, embedding_sent_boc_time, embedding_sent_bow_boc_time
 
 
 #  --- Test Feature Pyramids to generate all possible features ----
