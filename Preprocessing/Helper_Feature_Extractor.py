@@ -54,77 +54,20 @@ class Helper_FeatureExtraction:
         scoreDict = dict(zip(mentions, scores))
         return synsetDict, scoreDict
 
-    def extract_concepts_from_babelnet(self, text):
-        '''
-        Uses the synsets returned by Babelfy to extract categories for each disambiguated term.
-        Only the categories (for each term) that are most similar to the 'mainSense' are considered.
-        :param text: string
-        :return: a list of concepts from the text
-        '''
-        synsetObj = self.extract_synsets_from_babelfy(text)
-        synsetDict = synsetObj[0]
-        concepts = []
-        for k in synsetDict.keys():
-            params = {
-                'id': synsetDict[k],
-                'key': key
-            }
+    def get_synsets_for_tweets(self, all_synsets, tweet_synsets, data):
+        for tweet in data['text']:
+            synset_list = []  # list of synsetIDs for one tweet
+            tweet = self.emoji_to_text(tweet)
+            tweet = self.expand_contractions(tweet)
+            tweet = re.sub('#', '', tweet)
+            tweet = re.sub('RT', '', tweet)
+            synsetDict, scoreDict = self.extract_synsets_from_babelfy(tweet)
+            for key in synsetDict.keys():
+                all_synsets.append(synsetDict[key])
+                synset_list.append(synsetDict[key])
+            tweet_synsets.append(synset_list)
 
-            r = requests.get(babelnet_url, params=params, headers={'Accept-encoding': 'gzip'})
-            data = r.json()
-
-            if 'mainSense' in data and 'categories' in data:
-                main_sense = data['mainSense']
-                categories = data['categories']
-                sep = '#'
-                main_sense = main_sense.split(sep, 1)[0]  # mainSense specific Preprocessing
-                main_sense = main_sense.replace('_', ' ')
-
-
-                category_terms = []
-                for category in categories:
-                    term = category.get('category')
-                    term = term.replace('_', ' ')
-                    category_terms.append(term)
-
-                if (len(category_terms) == 0):
-                    concepts.append(main_sense)
-
-                else:
-                    maxscore = 0
-                    try:
-                        # if difflib returns an empty list, use cosine similarity from spacy
-                        finalCategory = get_close_matches(main_sense, category_terms)
-                        for cat in finalCategory:
-                            concepts.append(cat)
-
-                        if not finalCategory:
-                            for term in category_terms:
-                                w1 = nlp(term)
-                                w2 = nlp(main_sense)
-                                score = w1.similarity(w2)
-                                maxscore = max(score, maxscore)
-                                if maxscore == score:
-                                    concepts.append(term)
-                    except Exception as e:
-                        print(e.message)
-
-            elif 'mainSense' in data and 'categories' not in data:
-                main_sense = data['mainSense']
-                sep = '#'
-                main_sense = main_sense.split(sep, 1)[0]  # mainSense specific Preprocessing
-                main_sense = main_sense.replace('_', ' ')
-                concepts.append(main_sense)
-
-            elif 'mainSense' not in data and 'categories' in data:
-                categories = data['categories']
-                if len(categories) > 0:
-                    concepts.append(categories[0].replace('_', ' ')) # append the first one
-
-            else:
-                continue
-
-        return concepts
+        return tweet_synsets, all_synsets
 
     def hashtag_pipe(self, text):
         '''
@@ -148,6 +91,7 @@ class Helper_FeatureExtraction:
             merged_hashtag = False
         return text
 
+
     def remove_stopwords_and_punctuations(self, text, nlp):
         '''
         text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
@@ -167,6 +111,7 @@ class Helper_FeatureExtraction:
         tokens = [(token.text) for token in parsed_text if not str(token) in stopwords and not token.is_stop and not token.is_punct]
         return ' '.join(tokens)
 
+
     def lemmatize_text(self, text, nlp):
         '''
         text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
@@ -176,6 +121,7 @@ class Helper_FeatureExtraction:
         text = nlp(text)
         text = ' '.join([word.lemma_ if word.lemma_ != '-PRON-' else word.text for word in text])
         return text
+
 
     def expand_twitterLingo(self, text):
         with open('data/Test_Set_3802_Pairs.txt', 'r') as f:
@@ -201,6 +147,7 @@ class Helper_FeatureExtraction:
             print('norm_string: ' , final_string)
         return final_string
 
+
     def expand_contractions(self, text, contraction_mapping=CONTRACTION_MAP):
         '''
         Eg: text = "It's going be a rainy week for Davao. #PabloPH http://t.co/XnObb62J"
@@ -223,13 +170,16 @@ class Helper_FeatureExtraction:
         expanded_text = re.sub("'", "", expanded_text)
         return expanded_text
 
+
     def remove_username(self, text):
         text = re.sub('@[^\s]+', '.', text)
         return text
 
+
     def remove_url(self, text):
         text = re.sub(r"http\S+", "", text)
         return text
+
 
     def remove_special_symbols(self, text):
         '''
@@ -241,9 +191,11 @@ class Helper_FeatureExtraction:
         text = special_symbols.sub('', text)
         return text
 
+
     def extract_emojis_from_text(self, text):
         emoji_list = ''.join(c for c in text if c in emoji.UNICODE_EMOJI)
         return list(set(emoji_list))
+
 
     def categories_keywords_from_emojiNet(self, unicode_emoji):
         with open('data/emojidata/emojis.json') as f:
@@ -251,6 +203,7 @@ class Helper_FeatureExtraction:
             for d in data:
                 if unicode_emoji in d['unicode']:
                     return d['keywords'], d['category']
+
 
     def emoji_to_keywords_and_categories(self, text):
         emoji_list = self.extract_emojis_from_text(text)
@@ -278,14 +231,17 @@ class Helper_FeatureExtraction:
         text = text.replace("::", " ") #for emojis that don't have space between them
         return text
 
+
     def remove_emojis(self, text):
         emoji_list = [char for char in text if char in emoji.UNICODE_EMOJI]
         clean_text = ' '.join([tok for tok in text.split() if not any(char in tok for char in emoji_list)])
         return clean_text
 
+
     def remove_numbers(self, text):
         text = re.sub(r'\d+', '', text)
         return text
+
 
     def normalize_tweet(self, text, nlp, demojize_text= True, special_symbol_removal= True, emoji_removal= False, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True ):
 
@@ -323,6 +279,7 @@ class Helper_FeatureExtraction:
 
         return text
 
+
     def extract_keywords_from_tweets(self, input_dataframe):
         norm_tweets = []
         for _, row in input_dataframe.iterrows():
@@ -330,6 +287,7 @@ class Helper_FeatureExtraction:
             norm_tweets.append(norm_text)
 
         return norm_tweets
+
 
     def include_indicatorTerms_in_tweets(self, input_dataframe):
         norm_tweets = []
@@ -340,3 +298,5 @@ class Helper_FeatureExtraction:
             norm_tweets.append(norm_text)
 
         return norm_tweets
+
+
