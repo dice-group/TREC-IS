@@ -27,6 +27,11 @@ Check out the '<b> Creating a Twitter app </b>' section in [twitter's documentat
 For extracting Bag-of-Concepts features, you would require an access key from BabelNet. First create an [account on it](https://babelnet.org/register) and after logging in, fill the form as mentioned [here](http://babelfy.org/guide) to increase the daily limit. 
 Add the unique API key as 'babelnet_key' in secrets.py and then you're ready to go.!  
 
+### Getting started  
+After generating the training and test data from the given json files in the data directory, run ```Preprocessing/Feature_Extractor.py``` to generate all features and to run evaluation on the classical machine learning models. 
+By default, features will be generated for the training data. Change the function parameters/variables (```self.norm_df -> self.norm_test_df```) accordingly to generate features for the test data and change the path for saving the generated features from ```saved_objects/features/train/``` to ```saved_objects/features/test/``` in both ```Preprocessing/Feature_Extractor.py``` and ```Preprocessing/FeaturePyramids.py``` . 
+
+
 ##### Install the following dependencies before using the ```Feature_Extractor``` class: <br>
 - [spacy](https://spacy.io/usage/models#section-install) :
 ```
