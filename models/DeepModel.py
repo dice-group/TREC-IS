@@ -4,11 +4,12 @@ from keras.utils import to_categorical
 from keras.metrics import  categorical_accuracy
 
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import scale, normalize
 
-
+import numpy as np
 
 class Model:
     def __init__(self, X, y):
@@ -43,7 +44,7 @@ class Model:
         model.add(Dense(self.num_classes, activation='softmax'))
         model.compile(optimizer='adam',
                       loss='categorical_crossentropy',
-                      metrics=[categorical_accuracy])
+                       metrics=[categorical_accuracy])
 
         model.fit(self.X_train, self.y_train, epochs=100, batch_size=100, verbose=0, shuffle=True)
 
@@ -57,6 +58,11 @@ class Model:
         y_pred = self.model.predict(self.x_test)
         cm = confusion_matrix(self.y_test, y_pred)
         return cm
+
+    def f1_score(self):
+        y_pred = (np.asarray(self.model.predict(self.x_test))).round()
+        return f1_score(self.y_test, y_pred, average='micro')
+
 
     def save_model(self, f_name):
         self.model.save(f_name)
