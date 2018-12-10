@@ -21,6 +21,29 @@ source envname/bin/activate
 pip install -r requirements.txt
 ```
 
+##### In addition, install the following dependencies from terminal: <br>
+- [spacy](https://spacy.io/usage/models#section-install) :
+``` 
+python -m spacy download en
+```
+- [nltk](https://www.nltk.org/install.html) <br>
+Enter python shell and then download all the nltk packages. 
+```
+>> import nltk
+>> nltk.download( )
+
+```
+- [textblob](https://textblob.readthedocs.io/en/dev/)
+```
+python -m textblob.download_corpora
+
+```
+- [embedding pre-trained model](https://www.dropbox.com/s/3jao9guquyvysve/glove.840B.300d.txt?dl=0)
+``` 
+download the glove pre-trained model into data/embeddings folder. 
+
+```
+
 #### How to get the access keys?
 Check out the '<b> Creating a Twitter app </b>' section in [twitter's documentation for developers](https://developer.twitter.com/en/docs/basics/getting-started) to get the consumer keys and access tokens. 
 
@@ -32,32 +55,3 @@ After generating the training and test data from the given json files in the dat
 By default, features will be generated for the training data. Change the function parameters/variables (```self.norm_df -> self.norm_test_df```) accordingly to generate features for the test data and change the path for saving the generated features from ```saved_objects/features/train/``` to ```saved_objects/features/test/``` in both ```Preprocessing/Feature_Extractor.py``` and ```Preprocessing/FeaturePyramids.py``` . 
 
 
-##### Install the following dependencies before using the ```Feature_Extractor``` class: <br>
-- [spacy](https://spacy.io/usage/models#section-install) :
-```
-pip install -U spacy 
-python -m spacy download en
-```
-- [nltk](https://www.nltk.org/install.html) <br>
-```pip install -U nltk ``` <br>
-Enter python shell and then download all the nltk packages. 
-```
->> import nltk
->> nltk.download( )
-
-```
-- [scikit-learn](http://scikit-learn.org/stable/install.html)
-```
-pip install -U scikit-learn
-```
-- [textblob](https://textblob.readthedocs.io/en/dev/)
-```
-pip install -U textblob
-python -m textblob.download_corpora
-
-```
-- [embedding pre-trained model](https://www.dropbox.com/s/3jao9guquyvysve/glove.840B.300d.txt?dl=0)
-``` 
-download the glove pre-trained model into data/embeddings folder. 
-
-```

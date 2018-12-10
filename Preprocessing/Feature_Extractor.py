@@ -78,7 +78,7 @@ class FeatureExtraction:
             data.dropna(subset=['text'], how='all', inplace=True)  # drop missing values
             data['categories'] = self.le.fit_transform(data['categories'].astype(str))
 
-        normalized_tweets = self.hepler_fe.extract_keywords_from_tweets(data)
+        normalized_tweets = self.hepler_fe.include_indicatorTerms_in_tweets(data)
         new_col = np.asanyarray(normalized_tweets)
         data['norm_tweets'] = new_col
         return data

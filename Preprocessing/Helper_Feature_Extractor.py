@@ -292,7 +292,7 @@ class Helper_FeatureExtraction:
     def include_indicatorTerms_in_tweets(self, input_dataframe):
         norm_tweets = []
         for _, col in input_dataframe.iterrows():
-            norm_text = self.normalize_tweet(str(col['text']).lower(), nlp, demojize_text= False, special_symbol_removal= True, emoji_removal= True, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True )
+            norm_text = self.normalize_tweet(str(col['text']).lower(), nlp, demojize_text= True, special_symbol_removal= True, emoji_removal= False, contraction_expansion=True, lemmatization= True, remove_stopwords = True, hashtags_intact= True, url_removal= True, number_removal=True, username_removal= True )
             if col['indicatorTerms']:
                 norm_text += ' '.join(col['indicatorTerms'])
             norm_tweets.append(norm_text)
