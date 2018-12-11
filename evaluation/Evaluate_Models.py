@@ -1,5 +1,4 @@
-from sklearn.model_selection import cross_val_score
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 
 import pandas as pd
 from sklearn.externals import joblib
@@ -47,7 +46,7 @@ class ModelEvaluation:
 
             models, names = self.model.get_classical_models()
 
-            kf = StratifiedKFold(self.y, n_folds=10, shuffle=True, random_state=42)
+            kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
             entries = []
             for name, model in zip(names, models):
@@ -71,4 +70,9 @@ class ModelEvaluation:
             # plt.show()
 
 
+def main():
+    obj = ModelEvaluation(None, None, 'name')
+
+if __name__ == '__main__':
+    main()
 
