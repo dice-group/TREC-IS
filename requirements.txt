@@ -131,7 +131,7 @@ urllib3==1.23
 vincent==0.4.4
 wcwidth==0.1.7
 webencodings==0.5.1
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 widgetsnbextension==3.3.1
 wrapt==1.10.11
 xgboost==0.7.post3
