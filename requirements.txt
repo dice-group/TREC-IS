@@ -125,7 +125,7 @@ tqdm==4.23.4
 traitlets==4.3.2
 twarc==1.4.7
 typing==3.6.4
-ujson==1.35
+ujson==5.2.0
 update-checker==0.16
 urllib3==1.23
 vincent==0.4.4
